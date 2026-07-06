@@ -4,9 +4,9 @@
 
 ## 0. 成立条件（検証済みの技術前提）
 
-| 前提 | 根拠 |
-|---|---|
-| 1 ウィンドウに複数のネイティブ WebView を配置できる | Tauri v2 `unstable` feature の `Window::add_child` + `WebviewBuilder`（[PR #8280](https://github.com/tauri-apps/tauri/pull/8280)） |
+| 前提                                                 | 根拠                                                                                                                                                                                                                                                                           |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1 ウィンドウに複数のネイティブ WebView を配置できる  | Tauri v2 `unstable` feature の `Window::add_child` + `WebviewBuilder`（[PR #8280](https://github.com/tauri-apps/tauri/pull/8280)）                                                                                                                                             |
 | WebView ごとに独立した Cookie/Storage を永続化できる | `WebviewBuilder::data_store_identifier`（macOS 14+ / iOS 17+）。WKWebsiteDataStore を UUID 単位で分離し、`~/Library/WebKit/<bundle-id>/WebsiteDataStore/<UUID>` に WebKit 自身が永続化する（[docs.rs](https://docs.rs/tauri/latest/tauri/webview/struct.WebviewBuilder.html)） |
 
 **制約: macOS 14 (Sonoma) 以降が必須。** 14 未満では per-webview のデータ分離手段が WKWebView に存在しない。
@@ -72,15 +72,15 @@ store が唯一の真実。WebviewManager は store の subscriber であり、R
 
 **Rust 側は「ネイティブ WebView のリモコン」に徹する。** ロジックは持たない。
 
-| Rust command | 内容 |
-|---|---|
-| `create_pane_webview(label, url, session_id, bounds)` | `data_store_identifier` 付きで `add_child` |
-| `destroy_pane_webview(label)` | close |
-| `set_pane_bounds(label, bounds)` | 位置・サイズ |
-| `set_pane_visible(label, visible)` | show/hide |
-| `reload_pane(label)` / `eval_in_pane(label, js)` | リロード / JS 注入 |
+| Rust command                                          | 内容                                                                                  |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `create_pane_webview(label, url, session_id, bounds)` | `data_store_identifier` 付きで `add_child`（http/https 以外のスキームは拒否）         |
+| `destroy_pane_webview(label, purge_data)`             | close。`purge_data` が true のときのみ `clear_all_browsing_data` でデータストアも削除 |
+| `set_pane_bounds(label, bounds)`                      | 位置・サイズ                                                                          |
+| `set_pane_visible(label, visible)`                    | show/hide                                                                             |
+| `reload_pane(label)` / `eval_in_pane(label, js)`      | リロード / JS 注入                                                                    |
 
-Rust → TS イベント: `pane://title-changed`, `pane://navigated` など（init script で `document.title` を MutationObserver 監視して emit）。
+Rust → TS イベント: `pane://page-load`（payload: `{ label, url, event: "started" | "finished" }`）。ページ読込の開始/終了を `on_page_load` で emit し、TS 側は `finished` でミュート再注入・現在 URL 反映を行う。
 
 ### 1.6 セッション管理
 
@@ -94,14 +94,14 @@ Rust → TS イベント: `pane://title-changed`, `pane://navigated` など（in
 
 ペインのライフサイクルを 3 状態で管理:
 
-| 状態 | WebView | 適用 |
-|---|---|---|
-| `active` | 実体あり・表示 | ビューポート内 |
-| `hidden` | 実体あり・非表示 | ビューポート外（スクロールで即復帰） |
+| 状態        | WebView                            | 適用                                      |
+| ----------- | ---------------------------------- | ----------------------------------------- |
+| `active`    | 実体あり・表示                     | ビューポート内                            |
+| `hidden`    | 実体あり・非表示                   | ビューポート外（スクロールで即復帰）      |
 | `suspended` | 実体なし（セッションは永続化済み） | 非アクティブ workspace / 明示的サスペンド |
 
-- Workspace 切替 = 旧 workspace の全ペインを `suspended`、新 workspace を実体化。WebView 数は常に「アクティブ workspace のペイン数」に抑えられる。
-- サスペンドポリシー（例: 「hidden が N 分続いたら suspend」）は `SuspendPolicy` として Strategy 化し、将来設定でチューニング可能に。
+- Workspace 切替 = 旧 workspace の全ペインを `suspended`、新 workspace を実体化。WebView 数は常に「アクティブ workspace のペイン数」に抑えられる（`WebviewManager.reconcile`）。
+- **実装状況（既知の制限）**: `active`/`suspended` は上記の通り実装済み。`hidden`（ビューポート外での非表示）と `SuspendPolicy` の Strategy 化は `PaneLifecycle` 型に列としては残しているが、駆動するロジックは未実装（`setPaneLifecycle` の呼び出し元が無い）。現状は全ペイン常に `active` 表示で、スクロールアウトしても hide しない。将来必要になったら `LayoutController` の rect 計測結果（画面外判定）から駆動する想定。
 
 ### 1.8 状態管理・永続化
 
@@ -113,7 +113,7 @@ Rust → TS イベント: `pane://title-changed`, `pane://navigated` など（in
 
 - **ペイン = `ServiceDefinition` 抽象**: 現状は `{ name, url }` の generic サービスのみだが、`ServiceDefinition`（favicon 取得・通知バッジ抽出・init script を宣言的に持つ）を将来サービス固有実装のプラグイン点にする。
 - **init script チャネル**: title 監視スクリプトと同じ経路で通知バッジ・AI 要約用 DOM 抽出を注入できる。
-- **ミュート**: JS 注入方式（`video/audio` 要素を MutationObserver で `muted` 強制）を基本とする。ネイティブのページミュートは Tauri 公開 API に見当たらないため（未確認・実装フェーズで再調査）、まず確実な JS 方式で実装。
+- **ミュート**: JS 注入方式（`video/audio` 要素を MutationObserver で `muted` 強制、`eval_in_pane` 経由）で確定。ネイティブのページミュートは Tauri 公開 API に無いため採用せず。ナビゲーションで注入済み script が消えるため `pane://page-load` の `finished` イベントで再注入する（`WebviewManager`）。
 
 ## 2. ディレクトリ構成
 
@@ -140,9 +140,8 @@ flux-lane/
 │   │   ├── webview/
 │   │   │   ├── WebviewManager.ts # store 購読 → native 同期の facade
 │   │   │   ├── LayoutController.ts # rect 計測・差分 bounds 配信
-│   │   │   └── lifecycle.ts      # active/hidden/suspended 遷移 + SuspendPolicy
-│   │   ├── session/              # sessionId 発行・破棄
-│   │   ├── persistence/          # load/save・schema・migrations/
+│   │   │   └── reconcile.ts      # create/destroy 差分計算（純関数）
+│   │   ├── persistence/          # load/save・schema（sessionId は appStore.addPane 内で crypto.randomUUID 発行）
 │   │   └── ipc/                  # Tauri invoke/event の型付き wrapper（唯一の Tauri 依存点）
 │   ├── types/                    # ドメインモデル（Pane, Workspace, Settings, ...）
 │   └── lib/                      # 汎用 util
@@ -154,8 +153,8 @@ flux-lane/
 │   │   │   ├── webview.rs        # create/destroy/bounds/visible/reload/eval
 │   │   │   └── storage.rs        # config.json load/save
 │   │   └── session/
-│   │       ├── mod.rs            # SessionBackend trait
-│   │       └── macos.rs          # data_store_identifier 実装（将来 windows.rs 追加）
+│   │       └── mod.rs            # sessionId(UUID) <-> data_store_identifier([u8; 16]) 変換のみ。
+│   │                             # SessionBackend trait 化・macos.rs/windows.rs 分割は未着手
 │   ├── capabilities/
 │   ├── tauri.conf.json
 │   └── Cargo.toml                # tauri { features = ["unstable"] }
@@ -169,23 +168,23 @@ flux-lane/
 ## 3. データモデル（概略・次ステップで詳細化）
 
 ```ts
-type PaneId = string;      // uuid
+type PaneId = string; // uuid
 type WorkspaceId = string; // uuid
-type SessionId = string;   // uuid → data_store_identifier (16 bytes)
+type SessionId = string; // uuid → data_store_identifier (16 bytes)
 
 interface Pane {
   id: PaneId;
   title: string;
-  url: string;          // 初期 URL（現在 URL はランタイム状態で別管理）
+  url: string; // 初期 URL（現在 URL はランタイム状態で別管理）
   sessionId: SessionId;
-  width: number;        // px。min 300。新規作成時 = window 幅の 50% を確定値として保存
+  width: number; // px。min 300。新規作成時 = window 幅の 50% を確定値として保存
   muted: boolean;
 }
 
 interface Workspace {
   id: WorkspaceId;
   name: string;
-  paneIds: PaneId[];    // 並び順
+  paneIds: PaneId[]; // 並び順
 }
 
 interface PersistedState {
@@ -202,24 +201,24 @@ interface PersistedState {
 
 ## 4. 主要ライブラリ選定
 
-| 用途 | 選定 | 理由 |
-|---|---|---|
-| 状態管理 | Zustand | subscriber 同期と相性が良い・軽量 |
-| DnD | dnd-kit | 保守されている・sortable が要件そのもの |
-| スタイル | Tailwind CSS | 指定推奨・ミニマル UI に十分 |
-| ID | crypto.randomUUID | 依存追加不要 |
-| Rust 側 | tauri v2 (`unstable`) のみ | プラグイン追加は最小限 |
+| 用途     | 選定                       | 理由                                    |
+| -------- | -------------------------- | --------------------------------------- |
+| 状態管理 | Zustand                    | subscriber 同期と相性が良い・軽量       |
+| DnD      | dnd-kit                    | 保守されている・sortable が要件そのもの |
+| スタイル | Tailwind CSS               | 指定推奨・ミニマル UI に十分            |
+| ID       | crypto.randomUUID          | 依存追加不要                            |
+| Rust 側  | tauri v2 (`unstable`) のみ | プラグイン追加は最小限                  |
 
 ## 5. 実装ステップ（レビュー単位）
 
 1. ~~アーキテクチャ設計~~（本ドキュメント）
 2. ~~ディレクトリ構成~~（本ドキュメント）
-3. データモデル + 型定義の確定
-4. 状態管理（Zustand slices + selectors）
-5. WebView 管理（Rust commands + WebviewManager + LayoutController）
-6. Workspace 管理
-7. UI 実装（PaneStrip / PaneHeader / WorkspaceBar / 追加フロー）
-8. 永続化（load/save + 起動復元）
-9. DnD 並び替え + 幅リサイズハンドル
-10. 設定画面
-11. 品質改善（suspend ポリシー・エラーハンドリング・ESLint/Prettier 整備）
+3. ~~データモデル + 型定義の確定~~（`src/types/`）
+4. ~~状態管理（Zustand slices + selectors）~~（`src/stores/`）
+5. ~~WebView 管理（Rust commands + WebviewManager + LayoutController）~~（`src-tauri/src/commands/webview.rs`, `src/core/webview/`）
+6. ~~Workspace 管理~~（`src/features/workspaces/`）
+7. ~~UI 実装（PaneStrip / PaneHeader / WorkspaceBar / 追加フロー）~~（`src/components/`, `src/features/panes/`）
+8. ~~永続化（load/save + 起動復元）~~（`src/core/persistence/`）
+9. ~~DnD 並び替え + 幅リサイズハンドル~~（`src/features/panes/dragOrder.ts`, `useResizePane.ts`）
+10. ~~設定画面~~（`src/features/settings/SettingsView.tsx`: 新規ペインのデフォルト幅比率スライダー、ワークスペースの名称変更・削除）
+11. ~~品質改善（エラーハンドリング・ESLint/Prettier 整備）~~。suspend ポリシーの Strategy 化は未着手（1.7 参照）
