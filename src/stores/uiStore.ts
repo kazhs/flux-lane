@@ -1,0 +1,69 @@
+import { create } from "zustand";
+import type { AppView, OverlayMode, PaneId, PaneRuntimeState } from "../types";
+
+const DEFAULT_PANE_RUNTIME_STATE: PaneRuntimeState = {
+  lifecycle: "suspended",
+  currentUrl: null,
+  isLoading: false,
+};
+
+export interface UiState {
+  overlay: OverlayMode;
+  view: AppView;
+  paneRuntime: Record<PaneId, PaneRuntimeState>;
+}
+
+export interface UiActions {
+  setOverlay: (overlay: OverlayMode) => void;
+  setView: (view: AppView) => void;
+  setPaneLifecycle: (
+    paneId: PaneId,
+    lifecycle: PaneRuntimeState["lifecycle"],
+  ) => void;
+  setPaneLoading: (paneId: PaneId, isLoading: boolean) => void;
+  setPaneCurrentUrl: (paneId: PaneId, url: string | null) => void;
+  removePaneRuntime: (paneId: PaneId) => void;
+}
+
+export type UiStore = UiState & UiActions;
+
+function patchPaneRuntime(
+  paneRuntime: Record<PaneId, PaneRuntimeState>,
+  paneId: PaneId,
+  patch: Partial<PaneRuntimeState>,
+): Record<PaneId, PaneRuntimeState> {
+  const current = paneRuntime[paneId] ?? DEFAULT_PANE_RUNTIME_STATE;
+  return { ...paneRuntime, [paneId]: { ...current, ...patch } };
+}
+
+export const useUiStore = create<UiStore>()((set) => ({
+  overlay: "none",
+  view: "main",
+  paneRuntime: {},
+
+  setOverlay: (overlay) => set({ overlay }),
+
+  setView: (view) => set({ view }),
+
+  setPaneLifecycle: (paneId, lifecycle) =>
+    set((s) => ({
+      paneRuntime: patchPaneRuntime(s.paneRuntime, paneId, { lifecycle }),
+    })),
+
+  setPaneLoading: (paneId, isLoading) =>
+    set((s) => ({
+      paneRuntime: patchPaneRuntime(s.paneRuntime, paneId, { isLoading }),
+    })),
+
+  setPaneCurrentUrl: (paneId, url) =>
+    set((s) => ({
+      paneRuntime: patchPaneRuntime(s.paneRuntime, paneId, { currentUrl: url }),
+    })),
+
+  removePaneRuntime: (paneId) =>
+    set((s) => {
+      const paneRuntime = { ...s.paneRuntime };
+      delete paneRuntime[paneId];
+      return { paneRuntime };
+    }),
+}));
