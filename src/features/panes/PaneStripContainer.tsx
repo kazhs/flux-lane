@@ -14,7 +14,7 @@ import {
 import { restrictToHorizontalAxis } from "@dnd-kit/modifiers";
 import { useAppStore } from "../../stores/appStore";
 import { useUiStore } from "../../stores/uiStore";
-import { selectActivePanes } from "../../stores/selectors";
+import { selectActivePaneIds } from "../../stores/selectors";
 import { layoutController } from "../../core/webview/LayoutController";
 import { PaneStrip } from "../../components/pane/PaneStrip";
 import { AddPaneTile } from "../../components/pane/AddPaneTile";
@@ -23,12 +23,10 @@ import { resolveMoveIndex } from "./dragOrder";
 import type { PaneId } from "../../types";
 
 export function PaneStripContainer() {
-  const panes = useAppStore(selectActivePanes);
+  const paneIds = useAppStore(selectActivePaneIds);
   const movePane = useAppStore((s) => s.movePane);
   const setView = useUiStore((s) => s.setView);
   const setOverlay = useUiStore((s) => s.setOverlay);
-
-  const paneIds = panes.map((pane) => pane.id);
 
   // ドラッグ開始はヘッダーのグリップ（dragHandleProps）のみに listeners が付くため、
   // 誤反応を避けるための distance constraint は最小限で十分。
@@ -73,8 +71,8 @@ export function PaneStripContainer() {
     >
       <SortableContext items={paneIds} strategy={horizontalListSortingStrategy}>
         <PaneStrip containerRef={handleContainerRef}>
-          {panes.map((pane) => (
-            <PaneItem key={pane.id} paneId={pane.id} />
+          {paneIds.map((paneId) => (
+            <PaneItem key={paneId} paneId={paneId} />
           ))}
           <AddPaneTile onClick={() => setView("add-pane")} />
         </PaneStrip>
