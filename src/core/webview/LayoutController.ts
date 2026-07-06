@@ -16,6 +16,8 @@ export class LayoutController {
   private rafHandle: number | null = null;
   private onRects: ((rects: RectMap) => void) | null = null;
   private running = false;
+  /** start() 時点で scroll listener を付けた要素。registerContainer で差し替わっても stop() で正しく外せるように保持する。 */
+  private scrollListenerTarget: HTMLElement | null = null;
 
   private readonly scheduleMeasure = (): void => {
     if (!this.running || this.rafHandle !== null) return;
@@ -30,8 +32,16 @@ export class LayoutController {
   }
 
   registerPlaceholder(paneId: PaneId, el: HTMLElement | null): void {
+    const previous = this.placeholders.get(paneId) ?? null;
+    if (previous && previous !== el) {
+      this.resizeObserver?.unobserve(previous);
+    }
+
     if (el) {
       this.placeholders.set(paneId, el);
+      // start() 後に登録された placeholder（後から追加されたペイン）も監視対象にする。
+      // これが無いと幅変更時に ResizeObserver が発火せず、WebView の bounds が追随しない。
+      if (el !== previous) this.resizeObserver?.observe(el);
     } else {
       this.placeholders.delete(paneId);
       this.lastRects.delete(paneId);
@@ -51,9 +61,14 @@ export class LayoutController {
     }
 
     window.addEventListener("resize", this.scheduleMeasure, { passive: true });
-    this.container?.addEventListener("scroll", this.scheduleMeasure, {
-      passive: true,
-    });
+    this.scrollListenerTarget = this.container;
+    this.scrollListenerTarget?.addEventListener(
+      "scroll",
+      this.scheduleMeasure,
+      {
+        passive: true,
+      },
+    );
 
     this.scheduleMeasure();
   }
@@ -71,7 +86,13 @@ export class LayoutController {
     this.resizeObserver = null;
 
     window.removeEventListener("resize", this.scheduleMeasure);
-    this.container?.removeEventListener("scroll", this.scheduleMeasure);
+    // start() 時に listener を付けた要素を外す。registerContainer で container が
+    // 差し替わっていても、付けた側の参照を保持しているのでリークしない。
+    this.scrollListenerTarget?.removeEventListener(
+      "scroll",
+      this.scheduleMeasure,
+    );
+    this.scrollListenerTarget = null;
   }
 
   private measure(): void {

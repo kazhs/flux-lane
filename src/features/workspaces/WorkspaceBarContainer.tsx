@@ -24,6 +24,7 @@ export function WorkspaceBarContainer() {
       onAddWorkspace={() =>
         addWorkspace(`Workspace ${workspaceOrder.length + 1}`)
       }
+      onAddPane={() => setView("add-pane")}
       onOpenSettings={() => setView("settings")}
     />
   );

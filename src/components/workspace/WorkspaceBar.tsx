@@ -7,6 +7,7 @@ export type WorkspaceBarProps = {
   activeId: string | null;
   onSelect: (id: string) => void;
   onAddWorkspace: () => void;
+  onAddPane: () => void;
   onOpenSettings: () => void;
 };
 
@@ -15,6 +16,7 @@ export function WorkspaceBar({
   activeId,
   onSelect,
   onAddWorkspace,
+  onAddPane,
   onOpenSettings,
 }: WorkspaceBarProps) {
   return (
@@ -29,18 +31,24 @@ export function WorkspaceBar({
           />
         ))}
         <IconButton
-          aria-label="Add workspace"
+          aria-label="ワークスペースを追加"
           icon={<PlusIcon />}
           onClick={onAddWorkspace}
           className="mx-1"
         />
       </div>
-      <IconButton
-        aria-label="Settings"
-        icon={<SettingsIcon />}
-        onClick={onOpenSettings}
-        className="ml-auto"
-      />
+      <div className="ml-auto flex items-center gap-1">
+        <IconButton
+          aria-label="ペインを追加"
+          icon={<PlusIcon />}
+          onClick={onAddPane}
+        />
+        <IconButton
+          aria-label="Settings"
+          icon={<SettingsIcon />}
+          onClick={onOpenSettings}
+        />
+      </div>
     </div>
   );
 }

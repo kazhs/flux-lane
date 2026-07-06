@@ -1,4 +1,5 @@
 import type { ReactNode, Ref } from "react";
+import { PANE_SCROLLBAR_RESERVE_HEIGHT } from "../../lib/constants";
 
 export type PanePlaceholderProps = {
   width: number;
@@ -30,6 +31,13 @@ export function PanePlaceholder({
           </div>
         )}
       </div>
+      {/* WebView は body の rect にしか重ならないため、この帯だけ常に DOM が
+          透ける。ストリップの横スクロールバーがここに収まり、隠れず操作できる。 */}
+      <div
+        className="shrink-0 bg-bg"
+        style={{ height: PANE_SCROLLBAR_RESERVE_HEIGHT }}
+        aria-hidden="true"
+      />
     </div>
   );
 }
