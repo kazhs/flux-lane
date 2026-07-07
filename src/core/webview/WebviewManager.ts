@@ -182,10 +182,14 @@ class WebviewManager {
     }
   }
 
-  /** overlay と layoutHidden の AND で表示可否を決める共通ヘルパ。未生成の pane は無視する。 */
+  /** overlay と layoutHidden の AND で表示可否を決める共通ヘルパ。未生成の pane は無視する。
+   * `resizing` は例外的に表示のまま: リサイズのリアルタイム確認のため WebView を隠さない
+   * （幅計算はカーソル絶対座標ベースなのでイベント取りこぼしに耐える。useResizePane 参照）。 */
   private applyVisibility(paneId: PaneId, overlay: OverlayMode): void {
     if (!this.createdSessionIds.has(paneId)) return;
-    const visible = overlay === "none" && !this.layoutHidden.has(paneId);
+    const visible =
+      (overlay === "none" || overlay === "resizing") &&
+      !this.layoutHidden.has(paneId);
     void setPaneVisible(labelForPane(paneId), visible);
   }
 
