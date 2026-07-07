@@ -37,7 +37,7 @@ export class LayoutController {
   };
 
   /**
-   * running 中の差し替えに完全対応する（規約）。ビュー切替（add-pane / settings）で main
+   * running 中の差し替えに完全対応する（規約）。ビュー切替（settings）で main
    * ビューが再マウントされると container は別の DOM 要素になるため、listener と observe を
    * 旧要素から外して新要素へ張り直す。これを怠ると再マウント後にスクロールしても再計測が
    * 走らず、WebView が DOM に追随しない（過去に実バグ化）。

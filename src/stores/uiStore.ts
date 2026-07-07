@@ -11,6 +11,8 @@ const DEFAULT_PANE_RUNTIME_STATE: PaneRuntimeState = {
 export interface UiState {
   overlay: OverlayMode;
   view: AppView;
+  /** ペイン追加モーダルの開閉。main ビューはアンマウントせず張ったままにする（docs/ARCHITECTURE.md 1.2）。 */
+  addPaneOpen: boolean;
   paneRuntime: Record<PaneId, PaneRuntimeState>;
   /** ペインフォーカスモデル: フォーカス中のペイン。null は「どのペインもフォーカスしていない
    * （app chrome 側にフォーカスがある）」を表す（docs/ARCHITECTURE.md ペインフォーカスモデル）。 */
@@ -20,6 +22,7 @@ export interface UiState {
 export interface UiActions {
   setOverlay: (overlay: OverlayMode) => void;
   setView: (view: AppView) => void;
+  setAddPaneOpen: (open: boolean) => void;
   setPaneLifecycle: (
     paneId: PaneId,
     lifecycle: PaneRuntimeState["lifecycle"],
@@ -45,12 +48,15 @@ function patchPaneRuntime(
 export const useUiStore = create<UiStore>()((set) => ({
   overlay: "none",
   view: "main",
+  addPaneOpen: false,
   paneRuntime: {},
   focusedPaneId: null,
 
   setOverlay: (overlay) => set({ overlay }),
 
   setView: (view) => set({ view }),
+
+  setAddPaneOpen: (open) => set({ addPaneOpen: open }),
 
   setPaneLifecycle: (paneId, lifecycle) =>
     set((s) => ({

@@ -28,7 +28,7 @@ import type { PaneId } from "../../types";
 export function PaneStripContainer() {
   const paneIds = useAppStore(selectActivePaneIds);
   const movePane = useAppStore((s) => s.movePane);
-  const setView = useUiStore((s) => s.setView);
+  const setAddPaneOpen = useUiStore((s) => s.setAddPaneOpen);
   const setOverlay = useUiStore((s) => s.setOverlay);
   const focusedPaneId = useUiStore((s) => s.focusedPaneId);
 
@@ -113,7 +113,7 @@ export function PaneStripContainer() {
           {paneIds.map((paneId) => (
             <PaneItem key={paneId} paneId={paneId} />
           ))}
-          <AddPaneTile onClick={() => setView("add-pane")} />
+          <AddPaneTile onClick={() => setAddPaneOpen(true)} />
         </PaneStrip>
       </SortableContext>
     </DndContext>

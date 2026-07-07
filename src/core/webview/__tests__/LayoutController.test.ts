@@ -4,7 +4,7 @@ import type { Rect } from "../../../types";
 
 /**
  * 規約テスト: registerContainer / registerPlaceholder は running 中の差し替えに完全対応する。
- * ビュー切替（add-pane / settings）による再マウントで container が別要素になっても、
+ * ビュー切替（settings）による再マウントで container が別要素になっても、
  * scroll → 再計測 → 通知の経路が生き続けることを固定する（過去に実バグ化）。
  */
 

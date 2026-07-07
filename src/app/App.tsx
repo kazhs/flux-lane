@@ -3,21 +3,22 @@ import { useUiStore } from "../stores/uiStore";
 import { WorkspaceBarContainer } from "../features/workspaces/WorkspaceBarContainer";
 import { PaneStripContainer } from "../features/panes/PaneStripContainer";
 import { PaneRailContainer } from "../features/panes/PaneRailContainer";
-import { AddPaneView } from "../features/panes/AddPaneView";
+import { AddPaneModal } from "../features/panes/AddPaneModal";
 import { SettingsView } from "../features/settings/SettingsView";
 import "./App.css";
 
 function App() {
   const view = useUiStore((s) => s.view);
+  const addPaneOpen = useUiStore((s) => s.addPaneOpen);
   const setOverlay = useUiStore((s) => s.setOverlay);
   const setFocusedPane = useUiStore((s) => s.setFocusedPane);
 
   useEffect(() => {
-    // 全画面ビュー切替中は WebView を隠す（docs/ARCHITECTURE.md 1.2）。main に戻ったら復帰する。
-    setOverlay(view === "main" ? "none" : "modal");
-  }, [view, setOverlay]);
+    // 全画面ビュー切替中・ペイン追加モーダル表示中は WebView を隠す
+    // （docs/ARCHITECTURE.md 1.2）。main かつモーダル非表示に戻ったら復帰する。
+    setOverlay(view === "main" && !addPaneOpen ? "none" : "modal");
+  }, [view, addPaneOpen, setOverlay]);
 
-  if (view === "add-pane") return <AddPaneView />;
   if (view === "settings") return <SettingsView />;
 
   return (
@@ -34,6 +35,7 @@ function App() {
           <PaneStripContainer />
         </div>
       </div>
+      {addPaneOpen && <AddPaneModal />}
     </div>
   );
 }

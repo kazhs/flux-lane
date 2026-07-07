@@ -58,7 +58,7 @@ export function PaneRailContainer() {
   const paneRuntime = useUiStore((s) => s.paneRuntime);
   const focusedPaneId = useUiStore((s) => s.focusedPaneId);
   const setOverlay = useUiStore((s) => s.setOverlay);
-  const setView = useUiStore((s) => s.setView);
+  const setAddPaneOpen = useUiStore((s) => s.setAddPaneOpen);
 
   // レールアイテムはクリック（ジャンプ）と onContextMenu も同じ button に持つため、
   // 誤反応を避ける distance constraint を strip 側（4px）よりやや広めに取る。
@@ -169,7 +169,7 @@ export function PaneRailContainer() {
           items={items}
           onSelect={selectPane}
           onContextMenu={handleContextMenu}
-          onAddPane={() => setView("add-pane")}
+          onAddPane={() => setAddPaneOpen(true)}
         />
       </SortableContext>
     </DndContext>

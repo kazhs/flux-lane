@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useAppStore } from "../../stores/appStore";
 import { useUiStore } from "../../stores/uiStore";
 import { TextField } from "../../components/ui/TextField";
@@ -28,19 +28,36 @@ function normalizeUrl(input: string): string | null {
   }
 }
 
-export function AddPaneView() {
+/**
+ * ペイン追加モーダル。main ビュー（PaneStripContainer 等）はアンマウントせず、
+ * この上に重ねて表示する。表示中は uiStore.overlay が "modal" になり全 WebView が
+ * hide されるため、ネイティブ WebView が DOM より手前に出る心配はない
+ * （docs/ARCHITECTURE.md 1.2 Overlay Mode）。
+ */
+export function AddPaneModal() {
   const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
   const defaultPaneWidthRatio = useAppStore(
     (s) => s.settings.defaultPaneWidthRatio,
   );
   const addPane = useAppStore((s) => s.addPane);
-  const setView = useUiStore((s) => s.setView);
+  const setAddPaneOpen = useUiStore((s) => s.setAddPaneOpen);
 
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const [urlError, setUrlError] = useState<string | undefined>(undefined);
 
-  const handleCancel = () => setView("main");
+  const handleCancel = () => setAddPaneOpen(false);
+
+  // Esc でキャンセル。input にフォーカスがあっても document 側で捕まえる。
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setAddPaneOpen(false);
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [setAddPaneOpen]);
 
   const handleAddPreset = (service: ServiceDefinition) => {
     if (!activeWorkspaceId) return;
@@ -48,7 +65,7 @@ export function AddPaneView() {
     const title = nextServiceTitle(service.name);
     const width = Math.round(window.innerWidth * defaultPaneWidthRatio);
     addPane(activeWorkspaceId, { title, url: service.url, width });
-    setView("main");
+    setAddPaneOpen(false);
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -63,12 +80,24 @@ export function AddPaneView() {
 
     const width = Math.round(window.innerWidth * defaultPaneWidthRatio);
     addPane(activeWorkspaceId, { title: name.trim(), url: normalized, width });
-    setView("main");
+    setAddPaneOpen(false);
   };
 
   return (
-    <div className="flex h-screen items-center justify-center bg-bg">
-      <div className="flex w-80 flex-col gap-4 rounded-lg border border-border bg-surface p-6">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        handleCancel();
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="ペインを追加"
+        className="chrome-surface flex w-full max-w-md flex-col gap-4 rounded-lg border border-border p-6 shadow-xl"
+        onPointerDown={(e) => e.stopPropagation()}
+      >
         <h1 className="text-sm font-semibold text-text">ペインを追加</h1>
 
         <div className="flex flex-col gap-2">
@@ -102,6 +131,7 @@ export function AddPaneView() {
             onChange={(e) => setName(e.target.value)}
             placeholder="X"
             required
+            autoFocus
           />
           <TextField
             label="URL"

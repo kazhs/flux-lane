@@ -12,6 +12,7 @@ describe("uiStore", () => {
     const state = useUiStore.getState();
     expect(state.overlay).toBe("none");
     expect(state.view).toBe("main");
+    expect(state.addPaneOpen).toBe(false);
     expect(state.paneRuntime).toEqual({});
     expect(state.focusedPaneId).toBeNull();
   });
@@ -23,6 +24,14 @@ describe("uiStore", () => {
     const state = useUiStore.getState();
     expect(state.overlay).toBe("modal");
     expect(state.view).toBe("settings");
+  });
+
+  it("setAddPaneOpen transitions between open and closed", () => {
+    useUiStore.getState().setAddPaneOpen(true);
+    expect(useUiStore.getState().addPaneOpen).toBe(true);
+
+    useUiStore.getState().setAddPaneOpen(false);
+    expect(useUiStore.getState().addPaneOpen).toBe(false);
   });
 
   it("generates a default paneRuntime entry on the first partial update", () => {
