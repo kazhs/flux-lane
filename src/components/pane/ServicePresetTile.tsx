@@ -15,7 +15,7 @@ export function ServicePresetTile({
     <button
       type="button"
       onClick={onClick}
-      className="flex flex-col items-center gap-1.5 rounded-md border border-border bg-surface px-4 py-3 text-text-dim transition-colors hover:bg-surface-hover hover:text-text"
+      className="flex min-w-[100px] flex-col items-center gap-1.5 rounded-md border border-border bg-surface px-4 py-3 text-text-dim transition-colors hover:bg-surface-hover hover:text-text"
     >
       {icon}
       <span className="text-xs font-medium">{name}</span>

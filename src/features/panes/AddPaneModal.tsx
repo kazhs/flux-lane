@@ -121,38 +121,43 @@ export function AddPaneModal() {
 
         <div className="h-px bg-border" />
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <span className="text-xs font-medium text-text-dim">
-            カスタム URL
-          </span>
-          <TextField
-            label="名前"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="X"
-            required
-            autoFocus
-          />
-          <TextField
-            label="URL"
-            value={url}
-            onChange={(e) => {
-              setUrl(e.target.value);
-              setUrlError(undefined);
-            }}
-            placeholder="https://x.com"
-            error={urlError}
-            required
-          />
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={handleCancel}>
-              キャンセル
-            </Button>
-            <Button type="submit" variant="primary">
-              追加
-            </Button>
-          </div>
-        </form>
+        {/* 基本フローはプリセット追加なので、カスタム URL は閉じたアコーディオンにする。 */}
+        <details className="group">
+          <summary className="cursor-pointer list-none text-xs font-medium text-text-dim transition-colors hover:text-text">
+            <span className="mr-1 inline-block transition-transform group-open:rotate-90">
+              ▸
+            </span>
+            カスタム URL で追加
+          </summary>
+          <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4">
+            <TextField
+              label="名前"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="X"
+              required
+            />
+            <TextField
+              label="URL"
+              value={url}
+              onChange={(e) => {
+                setUrl(e.target.value);
+                setUrlError(undefined);
+              }}
+              placeholder="https://x.com"
+              error={urlError}
+              required
+            />
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={handleCancel}>
+                キャンセル
+              </Button>
+              <Button type="submit" variant="primary">
+                追加
+              </Button>
+            </div>
+          </form>
+        </details>
       </div>
     </div>
   );

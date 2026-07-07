@@ -23,7 +23,7 @@ pub fn run() {
             let window_builder = window_builder
                 .title_bar_style(tauri::TitleBarStyle::Transparent)
                 .hidden_title(true)
-                .background_color(tauri::window::Color(2, 9, 28, 255));
+                .background_color(tauri::window::Color(8, 42, 58, 255));
 
             let window = window_builder.build()?;
 
