@@ -6,17 +6,37 @@ import {
   createPaneWebview,
   destroyPaneWebview,
   evalInPane,
+  focusWebview,
   reloadPane,
   setPaneBounds,
   setPaneVisible,
 } from "../ipc/commands";
-import { onPanePageLoad } from "../ipc/events";
-import type { PaneLoadEventPayload } from "../ipc/types";
+import {
+  onPanePageLoad,
+  onPanePointerDown,
+  onPaneWheel as onPaneWheelEvent,
+} from "../ipc/events";
+import type {
+  PaneLoadEventPayload,
+  PanePointerDownEventPayload,
+  PaneWheelEventPayload,
+} from "../ipc/types";
 import { labelForPane, paneIdFromLabel } from "./paneLabel";
 import { computeWebviewOps } from "./reconcile";
 import { MUTE_SCRIPT, UNMUTE_SCRIPT } from "./scripts";
 
 type Unsubscribe = () => void;
+type PaneWheelCallback = (
+  paneId: PaneId,
+  deltaX: number,
+  deltaY: number,
+) => void;
+
+/** ペイン webview の initialization script（`__fluxLaneSetFocused`）に対する eval。
+ * script 未注入（remote IPC 不成立）の環境でも例外にならないようガードする。 */
+export function setFocusedScript(focused: boolean): string {
+  return `window.__fluxLaneSetFocused && window.__fluxLaneSetFocused(${focused});`;
+}
 
 /**
  * store の subscriber として native webview の create/destroy/visibility を同期する facade。
@@ -33,6 +53,9 @@ class WebviewManager {
   private readonly failedPaneIds = new Set<PaneId>();
   private readonly unsubscribers: Unsubscribe[] = [];
   private unlistenPageLoad: Unsubscribe | null = null;
+  private unlistenPointerDown: Unsubscribe | null = null;
+  private unlistenWheel: Unsubscribe | null = null;
+  private readonly wheelCallbacks = new Set<PaneWheelCallback>();
   private started = false;
 
   async init(): Promise<void> {
@@ -51,11 +74,20 @@ class WebviewManager {
         if (state.overlay !== prevState.overlay) {
           this.handleOverlayChange(state.overlay);
         }
+        if (state.focusedPaneId !== prevState.focusedPaneId) {
+          this.handleFocusChange(prevState.focusedPaneId, state.focusedPaneId);
+        }
       }),
     );
 
     this.unlistenPageLoad = await onPanePageLoad((payload) => {
       this.handlePageLoad(payload);
+    });
+    this.unlistenPointerDown = await onPanePointerDown((payload) => {
+      this.handlePanePointerDown(payload);
+    });
+    this.unlistenWheel = await onPaneWheelEvent((payload) => {
+      this.handlePaneWheelEvent(payload);
     });
   }
 
@@ -64,7 +96,19 @@ class WebviewManager {
     this.unsubscribers.length = 0;
     this.unlistenPageLoad?.();
     this.unlistenPageLoad = null;
+    this.unlistenPointerDown?.();
+    this.unlistenPointerDown = null;
+    this.unlistenWheel?.();
+    this.unlistenWheel = null;
     this.started = false;
+  }
+
+  /** ペインの wheel 転送（`pane://wheel`）を購読する。PaneStripContainer 等の UI 層から呼ぶ。 */
+  onPaneWheel(callback: PaneWheelCallback): Unsubscribe {
+    this.wheelCallbacks.add(callback);
+    return () => {
+      this.wheelCallbacks.delete(callback);
+    };
   }
 
   /** LayoutController からの通知を受け、変化した bounds だけを ipc へ送る。 */
@@ -129,6 +173,9 @@ class WebviewManager {
 
     for (const paneId of destroys) {
       this.createdSessionIds.delete(paneId);
+      if (useUiStore.getState().focusedPaneId === paneId) {
+        useUiStore.getState().setFocusedPane(null);
+      }
       // store から完全に消えたペイン（どの workspace にも属さない）だけ purge_data する。
       // workspace 切替による suspend はセッションを残す。
       const stillExists = Boolean(useAppStore.getState().panes[paneId]);
@@ -170,6 +217,37 @@ class WebviewManager {
     }
   }
 
+  /** フォーカス移動: 旧ペインに false、新ペインに true を eval し、null になったら
+   * キーボードフォーカスを "main-ui" に戻す（ペインフォーカスモデル）。 */
+  private handleFocusChange(
+    previous: PaneId | null,
+    next: PaneId | null,
+  ): void {
+    if (previous && previous !== next && this.createdSessionIds.has(previous)) {
+      void evalInPane(labelForPane(previous), setFocusedScript(false));
+    }
+    if (next && this.createdSessionIds.has(next)) {
+      void evalInPane(labelForPane(next), setFocusedScript(true));
+    }
+    if (next === null) {
+      void focusWebview("main-ui");
+    }
+  }
+
+  private handlePanePointerDown(payload: PanePointerDownEventPayload): void {
+    const paneId = paneIdFromLabel(payload.label);
+    if (!paneId) return;
+    useUiStore.getState().setFocusedPane(paneId);
+  }
+
+  private handlePaneWheelEvent(payload: PaneWheelEventPayload): void {
+    const paneId = paneIdFromLabel(payload.label);
+    if (!paneId) return;
+    for (const callback of this.wheelCallbacks) {
+      callback(paneId, payload.deltaX, payload.deltaY);
+    }
+  }
+
   private handlePageLoad(payload: PaneLoadEventPayload): void {
     const paneId = paneIdFromLabel(payload.label);
     if (!paneId) return;
@@ -184,6 +262,12 @@ class WebviewManager {
       if (pane?.muted) {
         // ナビゲーションで init script が消えるため、finished 時に再 eval する。
         void evalInPane(labelForPane(paneId), MUTE_SCRIPT);
+      }
+
+      // ナビゲーションで init script が再実行され focused=false に初期化されるため、
+      // app 側がフォーカス中と認識しているペインには focus 状態を再送する。
+      if (uiState.focusedPaneId === paneId) {
+        void evalInPane(labelForPane(paneId), setFocusedScript(true));
       }
     }
   }

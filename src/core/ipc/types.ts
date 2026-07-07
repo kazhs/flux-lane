@@ -9,3 +9,15 @@ export interface PaneLoadEventPayload {
   url: string;
   event: "started" | "finished";
 }
+
+/** `pane://pointer-down` イベントの payload。 */
+export interface PanePointerDownEventPayload {
+  label: string;
+}
+
+/** `pane://wheel` イベントの payload。 */
+export interface PaneWheelEventPayload {
+  label: string;
+  deltaX: number;
+  deltaY: number;
+}

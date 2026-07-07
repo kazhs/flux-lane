@@ -41,6 +41,10 @@ export function evalInPane(label: string, js: string): Promise<void> {
   return invoke("eval_in_pane", { label, js });
 }
 
+export function focusWebview(label: string): Promise<void> {
+  return invoke("focus_webview", { label });
+}
+
 export function loadPersistedState(): Promise<string | null> {
   return invoke("load_persisted_state");
 }

@@ -1,0 +1,11 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "pane-remote",
+  "description": "Minimal remote IPC access for pane webviews (pane focus model). Allows only pointer-down focus notification and wheel forwarding from any https origin — no other commands or core permissions are exposed.",
+  "local": false,
+  "webviews": ["pane-*"],
+  "remote": {
+    "urls": ["https://*"]
+  },
+  "permissions": ["allow-notify-pane-pointer-down", "allow-forward-pane-wheel"]
+}

@@ -3,5 +3,16 @@
   "identifier": "default",
   "description": "Capability for the main-ui webview (Chrome Layer)",
   "webviews": ["main-ui"],
-  "permissions": ["core:default"]
+  "permissions": [
+    "core:default",
+    "allow-create-pane-webview",
+    "allow-destroy-pane-webview",
+    "allow-set-pane-bounds",
+    "allow-set-pane-visible",
+    "allow-reload-pane",
+    "allow-eval-in-pane",
+    "allow-focus-webview",
+    "allow-load-persisted-state",
+    "allow-save-persisted-state"
+  ]
 }

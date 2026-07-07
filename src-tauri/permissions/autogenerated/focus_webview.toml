@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-focus-webview"
+description = "Enables the focus_webview command without any pre-configured scope."
+commands.allow = ["focus_webview"]
+
+[[permission]]
+identifier = "deny-focus-webview"
+description = "Denies the focus_webview command without any pre-configured scope."
+commands.deny = ["focus_webview"]

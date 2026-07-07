@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-destroy-pane-webview"
+description = "Enables the destroy_pane_webview command without any pre-configured scope."
+commands.allow = ["destroy_pane_webview"]
+
+[[permission]]
+identifier = "deny-destroy-pane-webview"
+description = "Denies the destroy_pane_webview command without any pre-configured scope."
+commands.deny = ["destroy_pane_webview"]

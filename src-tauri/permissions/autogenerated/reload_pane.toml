@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-reload-pane"
+description = "Enables the reload_pane command without any pre-configured scope."
+commands.allow = ["reload_pane"]
+
+[[permission]]
+identifier = "deny-reload-pane"
+description = "Denies the reload_pane command without any pre-configured scope."
+commands.deny = ["reload_pane"]

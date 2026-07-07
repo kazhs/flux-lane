@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-create-pane-webview"
+description = "Enables the create_pane_webview command without any pre-configured scope."
+commands.allow = ["create_pane_webview"]
+
+[[permission]]
+identifier = "deny-create-pane-webview"
+description = "Denies the create_pane_webview command without any pre-configured scope."
+commands.deny = ["create_pane_webview"]

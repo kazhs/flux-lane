@@ -16,6 +16,7 @@ import { useAppStore } from "../../stores/appStore";
 import { useUiStore } from "../../stores/uiStore";
 import { selectActivePaneIds } from "../../stores/selectors";
 import { layoutController } from "../../core/webview/LayoutController";
+import { webviewManager } from "../../core/webview/WebviewManager";
 import { PaneStrip } from "../../components/pane/PaneStrip";
 import { AddPaneTile } from "../../components/pane/AddPaneTile";
 import { PaneItem } from "./PaneItem";
@@ -49,6 +50,18 @@ export function PaneStripContainer() {
     }
     prevPaneCountRef.current = paneIds.length;
   }, [paneIds.length]);
+
+  // 未フォーカスペイン上の wheel は `pane://wheel` で転送される（`WebviewManager`）。
+  // 横ジェスチャ（deltaX）のみストリップスクロールに反映する。縦→横の変換はしない:
+  // トラックパッドの縦スワイプが横スクロールになるのは直感に反するため、未フォーカス
+  // ペイン上の縦スワイプは「何もしない」が正しい（DOM 露出領域の変換とは別ポリシー）。
+  useEffect(() => {
+    return webviewManager.onPaneWheel((_paneId, deltaX) => {
+      const el = containerElRef.current;
+      if (!el || deltaX === 0) return;
+      el.scrollLeft += deltaX;
+    });
+  }, []);
 
   const handleDragStart = useCallback(() => {
     setOverlay("dragging");

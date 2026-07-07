@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-set-pane-visible"
+description = "Enables the set_pane_visible command without any pre-configured scope."
+commands.allow = ["set_pane_visible"]
+
+[[permission]]
+identifier = "deny-set-pane-visible"
+description = "Denies the set_pane_visible command without any pre-configured scope."
+commands.deny = ["set_pane_visible"]

@@ -7,6 +7,7 @@ use tauri::{
     WebviewBuilder, WebviewUrl,
 };
 
+use crate::pane_focus::PANE_FOCUS_INIT_SCRIPT;
 use crate::session::session_id_to_data_store_identifier;
 
 /// logical px の矩形。`f64` は Tauri の Logical* 系と揃える。
@@ -67,6 +68,7 @@ pub fn create_pane_webview(
     let label_for_event = label.clone();
     let builder = WebviewBuilder::new(label.clone(), WebviewUrl::External(parsed_url))
         .data_store_identifier(data_store_identifier)
+        .initialization_script(PANE_FOCUS_INIT_SCRIPT)
         .on_page_load(move |webview, payload| {
             let event = match payload.event() {
                 tauri::webview::PageLoadEvent::Started => "started",
@@ -127,6 +129,14 @@ pub fn set_pane_visible(app: AppHandle, label: String, visible: bool) -> Result<
 pub fn reload_pane(app: AppHandle, label: String) -> Result<(), String> {
     let webview = get_pane_webview(&app, &label)?;
     webview.reload().map_err(|e| e.to_string())
+}
+
+/// 指定した webview（ペイン or "main-ui"）にネイティブフォーカスを移す。
+/// ペインフォーカスモデルで、フォーカス解除時に "main-ui" へキーボードフォーカスを戻すのに使う。
+#[tauri::command]
+pub fn focus_webview(app: AppHandle, label: String) -> Result<(), String> {
+    let webview = get_pane_webview(&app, &label)?;
+    webview.set_focus().map_err(|e| e.to_string())
 }
 
 #[tauri::command]

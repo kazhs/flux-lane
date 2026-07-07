@@ -13,6 +13,7 @@ describe("uiStore", () => {
     expect(state.overlay).toBe("none");
     expect(state.view).toBe("main");
     expect(state.paneRuntime).toEqual({});
+    expect(state.focusedPaneId).toBeNull();
   });
 
   it("setOverlay / setView update the corresponding fields", () => {
@@ -51,5 +52,16 @@ describe("uiStore", () => {
     useUiStore.getState().removePaneRuntime("pane-1");
 
     expect(useUiStore.getState().paneRuntime["pane-1"]).toBeUndefined();
+  });
+
+  it("setFocusedPane transitions between panes and back to null", () => {
+    useUiStore.getState().setFocusedPane("pane-1");
+    expect(useUiStore.getState().focusedPaneId).toBe("pane-1");
+
+    useUiStore.getState().setFocusedPane("pane-2");
+    expect(useUiStore.getState().focusedPaneId).toBe("pane-2");
+
+    useUiStore.getState().setFocusedPane(null);
+    expect(useUiStore.getState().focusedPaneId).toBeNull();
   });
 });

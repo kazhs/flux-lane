@@ -1,4 +1,4 @@
-import type { HTMLAttributes } from "react";
+import type { HTMLAttributes, PointerEvent as ReactPointerEvent } from "react";
 import { PANE_HEADER_HEIGHT } from "../../lib/constants";
 import { IconButton } from "../ui/IconButton";
 import {
@@ -14,9 +14,12 @@ export type PaneHeaderProps = {
   url: string;
   muted: boolean;
   isLoading: boolean;
+  /** ペインフォーカスモデルでこのペインがフォーカス中か。上端に accent ラインを表示する。 */
+  focused?: boolean;
   onReload: () => void;
   onToggleMute: () => void;
   onClose: () => void;
+  onPointerDown?: (event: ReactPointerEvent<HTMLDivElement>) => void;
   dragHandleProps?: HTMLAttributes<HTMLElement>;
 };
 
@@ -33,16 +36,25 @@ export function PaneHeader({
   url,
   muted,
   isLoading,
+  focused,
   onReload,
   onToggleMute,
   onClose,
+  onPointerDown,
   dragHandleProps,
 }: PaneHeaderProps) {
   return (
     <div
-      className="flex items-center gap-1.5 border-b border-border bg-surface px-2"
+      onPointerDown={onPointerDown}
+      className="relative flex items-center gap-1.5 border-b border-border bg-surface px-2"
       style={{ height: PANE_HEADER_HEIGHT }}
     >
+      {focused && (
+        <div
+          className="absolute inset-x-0 top-0 h-0.5 bg-accent"
+          aria-hidden="true"
+        />
+      )}
       <span
         {...dragHandleProps}
         className="flex shrink-0 cursor-grab items-center text-text-dim active:cursor-grabbing"

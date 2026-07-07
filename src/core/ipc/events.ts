@@ -3,12 +3,32 @@
  */
 import { listen } from "@tauri-apps/api/event";
 import type { UnlistenFn } from "@tauri-apps/api/event";
-import type { PaneLoadEventPayload } from "./types";
+import type {
+  PaneLoadEventPayload,
+  PanePointerDownEventPayload,
+  PaneWheelEventPayload,
+} from "./types";
 
 export function onPanePageLoad(
   callback: (payload: PaneLoadEventPayload) => void,
 ): Promise<UnlistenFn> {
   return listen<PaneLoadEventPayload>("pane://page-load", (event) => {
+    callback(event.payload);
+  });
+}
+
+export function onPanePointerDown(
+  callback: (payload: PanePointerDownEventPayload) => void,
+): Promise<UnlistenFn> {
+  return listen<PanePointerDownEventPayload>("pane://pointer-down", (event) => {
+    callback(event.payload);
+  });
+}
+
+export function onPaneWheel(
+  callback: (payload: PaneWheelEventPayload) => void,
+): Promise<UnlistenFn> {
+  return listen<PaneWheelEventPayload>("pane://wheel", (event) => {
     callback(event.payload);
   });
 }

@@ -1,4 +1,5 @@
 mod commands;
+mod pane_focus;
 mod session;
 
 use tauri::{LogicalPosition, LogicalSize, WebviewBuilder, WebviewUrl, WindowBuilder};
@@ -29,6 +30,9 @@ pub fn run() {
             commands::webview::set_pane_visible,
             commands::webview::reload_pane,
             commands::webview::eval_in_pane,
+            commands::webview::focus_webview,
+            commands::pane_events::notify_pane_pointer_down,
+            commands::pane_events::forward_pane_wheel,
             commands::storage::load_persisted_state,
             commands::storage::save_persisted_state,
         ])

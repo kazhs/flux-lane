@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, type PointerEvent as ReactPointerEvent } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useAppStore } from "../../stores/appStore";
@@ -25,6 +25,8 @@ export function PaneItem({ paneId }: PaneItemProps) {
   const overlay = useUiStore((s) => s.overlay);
   const setOverlay = useUiStore((s) => s.setOverlay);
   const removePaneRuntime = useUiStore((s) => s.removePaneRuntime);
+  const focused = useUiStore((s) => s.focusedPaneId === paneId);
+  const setFocusedPane = useUiStore((s) => s.setFocusedPane);
 
   const {
     attributes,
@@ -47,6 +49,16 @@ export function PaneItem({ paneId }: PaneItemProps) {
     [setOverlay],
   );
   const handleEndResize = useCallback(() => setOverlay("none"), [setOverlay]);
+
+  // ヘッダー上の pointerdown は root（App）の「他所クリックでフォーカス解除」より先に
+  // 自ペインへのフォーカスを確定させる。stopPropagation で root ハンドラの発火を防ぐ。
+  const handleHeaderPointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      event.stopPropagation();
+      setFocusedPane(paneId);
+    },
+    [paneId, setFocusedPane],
+  );
 
   const handleResizePointerDown = useResizePane({
     paneId,
@@ -91,9 +103,11 @@ export function PaneItem({ paneId }: PaneItemProps) {
             url={runtime?.currentUrl ?? pane.url}
             muted={pane.muted}
             isLoading={runtime?.isLoading ?? false}
+            focused={focused}
             onReload={handleReload}
             onToggleMute={handleToggleMute}
             onClose={handleClose}
+            onPointerDown={handleHeaderPointerDown}
             dragHandleProps={{ ...attributes, ...listeners }}
           />
         }

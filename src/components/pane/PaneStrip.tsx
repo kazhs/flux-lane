@@ -1,4 +1,5 @@
 import type { ReactNode, Ref, WheelEvent } from "react";
+import { wheelToScrollDelta } from "../../lib/wheel";
 
 export type PaneStripProps = {
   children: ReactNode;
@@ -6,12 +7,14 @@ export type PaneStripProps = {
 };
 
 /**
- * 縦ホイールを横スクロールに変換する。ネイティブ WebView 上ではホイールが DOM に
- * 届かないため、ヘッダー・下端の帯など DOM が露出する領域だけで確実に流せるようにする。
+ * 縦ホイールを横スクロールに変換する（`wheelToScrollDelta` 参照）。ネイティブ WebView 上では
+ * ホイールが DOM に届かないため、ヘッダー・下端の帯など DOM が露出する領域だけで確実に流せる
+ * ようにする。
  */
 function handleWheel(event: WheelEvent<HTMLDivElement>): void {
-  if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
-  event.currentTarget.scrollLeft += event.deltaY;
+  const delta = wheelToScrollDelta(event.deltaX, event.deltaY);
+  if (delta === null) return;
+  event.currentTarget.scrollLeft += delta;
 }
 
 export function PaneStrip({ children, containerRef }: PaneStripProps) {

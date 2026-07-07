@@ -11,6 +11,9 @@ export interface UiState {
   overlay: OverlayMode;
   view: AppView;
   paneRuntime: Record<PaneId, PaneRuntimeState>;
+  /** ペインフォーカスモデル: フォーカス中のペイン。null は「どのペインもフォーカスしていない
+   * （app chrome 側にフォーカスがある）」を表す（docs/ARCHITECTURE.md ペインフォーカスモデル）。 */
+  focusedPaneId: PaneId | null;
 }
 
 export interface UiActions {
@@ -23,6 +26,7 @@ export interface UiActions {
   setPaneLoading: (paneId: PaneId, isLoading: boolean) => void;
   setPaneCurrentUrl: (paneId: PaneId, url: string | null) => void;
   removePaneRuntime: (paneId: PaneId) => void;
+  setFocusedPane: (paneId: PaneId | null) => void;
 }
 
 export type UiStore = UiState & UiActions;
@@ -40,6 +44,7 @@ export const useUiStore = create<UiStore>()((set) => ({
   overlay: "none",
   view: "main",
   paneRuntime: {},
+  focusedPaneId: null,
 
   setOverlay: (overlay) => set({ overlay }),
 
@@ -66,4 +71,6 @@ export const useUiStore = create<UiStore>()((set) => ({
       delete paneRuntime[paneId];
       return { paneRuntime };
     }),
+
+  setFocusedPane: (paneId) => set({ focusedPaneId: paneId }),
 }));
