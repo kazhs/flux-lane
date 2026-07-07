@@ -37,6 +37,8 @@ function isWorkspace(value: unknown): value is Workspace {
   );
 }
 
+/** `autoScroll` は旧バージョンの永続化データに存在しないため欠落を許容し、
+ * {@link sanitizeMissingAutoScroll} で false を補完する。値がある場合は boolean 以外を reject。 */
 function isPane(value: unknown): value is Pane {
   return (
     isPlainObject(value) &&
@@ -45,7 +47,8 @@ function isPane(value: unknown): value is Pane {
     isString(value.url) &&
     isString(value.sessionId) &&
     isFiniteNumber(value.width) &&
-    isBoolean(value.muted)
+    isBoolean(value.muted) &&
+    (value.autoScroll === undefined || isBoolean(value.autoScroll))
   );
 }
 
@@ -66,6 +69,24 @@ function sanitizeDanglingPaneIds(state: PersistedState): PersistedState {
     workspaces[id] = { ...workspace, paneIds };
   }
   return changed ? { ...state, workspaces } : state;
+}
+
+/**
+ * `autoScroll` フィールドが無い pane（`autoScroll` 追加前に保存された旧データ）に
+ * false を補完した複製を返す。{@link isPane} で型は検証済みなので、ここでは欠落のみを扱う。
+ */
+function sanitizeMissingAutoScroll(state: PersistedState): PersistedState {
+  const panes: Record<string, Pane> = {};
+  let changed = false;
+  for (const [id, pane] of Object.entries(state.panes)) {
+    if (typeof pane.autoScroll === "boolean") {
+      panes[id] = pane;
+    } else {
+      changed = true;
+      panes[id] = { ...pane, autoScroll: false };
+    }
+  }
+  return changed ? { ...state, panes } : state;
 }
 
 /** v1 スキーマの構造検証。フィールド存在・型・参照整合性（activeWorkspaceId / workspaceOrder が実在する workspace を指すか）まで確認する。paneIds の dangling 参照は reject せず {@link sanitizeDanglingPaneIds} で修復する。 */
@@ -104,7 +125,9 @@ export function parsePersistedState(json: string): PersistedState | null {
 
   switch (raw.schemaVersion) {
     case CURRENT_SCHEMA_VERSION:
-      return isPersistedStateV1(raw) ? sanitizeDanglingPaneIds(raw) : null;
+      return isPersistedStateV1(raw)
+        ? sanitizeMissingAutoScroll(sanitizeDanglingPaneIds(raw))
+        : null;
     default:
       return null;
   }

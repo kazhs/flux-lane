@@ -78,6 +78,35 @@ export function XIcon({ size = 16, className }: IconProps) {
   );
 }
 
+export function PlayIcon({ size = 16, className }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      className={className}
+      fill="currentColor"
+    >
+      <path d="M4 2.5v11l9-5.5z" />
+    </svg>
+  );
+}
+
+export function PauseIcon({ size = 16, className }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      className={className}
+      fill="currentColor"
+    >
+      <rect x="3.5" y="2.5" width="3" height="11" />
+      <rect x="9.5" y="2.5" width="3" height="11" />
+    </svg>
+  );
+}
+
 export function GripIcon({ size = 16, className }: IconProps) {
   return (
     <svg

@@ -1,16 +1,7 @@
 /**
- * プリセットサービス追加時のタイトルを決める純関数。同名ペインが無ければ baseName の
- * ままとし、既にあれば "baseName 2", "baseName 3" ... と衝突しない番号を付ける。
+ * プリセットサービス追加時のタイトルを決める純関数。常に baseName をそのまま返す
+ * （同名ペインが既にあっても "baseName 2" 等の連番は付けない）。
  */
-export function nextServiceTitle(
-  existingTitles: readonly string[],
-  baseName: string,
-): string {
-  if (!existingTitles.includes(baseName)) return baseName;
-
-  let n = 2;
-  while (existingTitles.includes(`${baseName} ${n}`)) {
-    n += 1;
-  }
-  return `${baseName} ${n}`;
+export function nextServiceTitle(baseName: string): string {
+  return baseName;
 }

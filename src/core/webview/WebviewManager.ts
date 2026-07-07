@@ -27,7 +27,12 @@ import type {
 } from "../ipc/types";
 import { labelForPane, paneIdFromLabel } from "./paneLabel";
 import { computeWebviewOps } from "./reconcile";
-import { MUTE_SCRIPT, UNMUTE_SCRIPT } from "./scripts";
+import {
+  AUTO_SCROLL_START_SCRIPT,
+  AUTO_SCROLL_STOP_SCRIPT,
+  MUTE_SCRIPT,
+  UNMUTE_SCRIPT,
+} from "./scripts";
 
 type Unsubscribe = () => void;
 type PaneWheelCallback = (
@@ -163,6 +168,15 @@ class WebviewManager {
   async setMuted(paneId: PaneId, muted: boolean): Promise<void> {
     if (!this.createdSessionIds.has(paneId)) return;
     await evalInPane(labelForPane(paneId), muted ? MUTE_SCRIPT : UNMUTE_SCRIPT);
+  }
+
+  /** オートスクロール開始/停止の JS 注入のみを行う。store 更新は呼び出し側の責務。 */
+  async setAutoScroll(paneId: PaneId, on: boolean): Promise<void> {
+    if (!this.createdSessionIds.has(paneId)) return;
+    await evalInPane(
+      labelForPane(paneId),
+      on ? AUTO_SCROLL_START_SCRIPT : AUTO_SCROLL_STOP_SCRIPT,
+    );
   }
 
   /** LayoutController からの hidden 変化通知を受け、layoutHidden 集合を更新して
@@ -340,6 +354,11 @@ class WebviewManager {
       if (pane?.muted) {
         // ナビゲーションで init script が消えるため、finished 時に再 eval する。
         void evalInPane(labelForPane(paneId), MUTE_SCRIPT);
+      }
+      if (pane?.autoScroll) {
+        // ナビゲーションで init script が消えるため、finished 時に再 eval する
+        // （MUTE_SCRIPT と同じ理由）。
+        void evalInPane(labelForPane(paneId), AUTO_SCROLL_START_SCRIPT);
       }
 
       // ナビゲーションで init script が再実行され focused=false に初期化されるため、

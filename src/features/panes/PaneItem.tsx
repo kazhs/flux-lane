@@ -8,6 +8,7 @@ import { layoutController } from "../../core/webview/LayoutController";
 import { PaneHeader } from "../../components/pane/PaneHeader";
 import { PanePlaceholder } from "../../components/pane/PanePlaceholder";
 import { PaneResizeHandle } from "../../components/pane/PaneResizeHandle";
+import { PaneSideMenu } from "../../components/pane/PaneSideMenu";
 import { MIN_PANE_WIDTH } from "../../lib/constants";
 import { useResizePane } from "./useResizePane";
 import { closePaneWithConfirm } from "./paneClose";
@@ -83,6 +84,12 @@ export function PaneItem({ paneId }: PaneItemProps) {
     void closePaneWithConfirm(paneId, pane.title);
   };
 
+  const handleToggleAutoScroll = () => {
+    const autoScroll = !pane.autoScroll;
+    updatePane(paneId, { autoScroll });
+    void webviewManager.setAutoScroll(paneId, autoScroll);
+  };
+
   return (
     <div
       ref={setNodeRef}
@@ -94,18 +101,23 @@ export function PaneItem({ paneId }: PaneItemProps) {
         opacity: isDragging ? 0.4 : 1,
       }}
     >
+      <PaneSideMenu
+        autoScroll={pane.autoScroll}
+        muted={pane.muted}
+        isLoading={runtime?.isLoading ?? false}
+        onReload={handleReload}
+        onToggleAutoScroll={handleToggleAutoScroll}
+        onToggleMute={handleToggleMute}
+        onClose={handleClose}
+      />
       <PanePlaceholder
         width={pane.width}
         header={
           <PaneHeader
             title={pane.title}
             url={runtime?.currentUrl ?? pane.url}
-            muted={pane.muted}
-            isLoading={runtime?.isLoading ?? false}
+            accountLabel={runtime?.accountLabel ?? null}
             focused={focused}
-            onReload={handleReload}
-            onToggleMute={handleToggleMute}
-            onClose={handleClose}
             onPointerDown={handleHeaderPointerDown}
             dragHandleProps={{ ...attributes, ...listeners }}
           />

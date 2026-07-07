@@ -92,6 +92,33 @@ describe("appStore", () => {
     expect(state.activeWorkspaceId).toBe(wsA);
   });
 
+  it("addPane initializes autoScroll to false", () => {
+    hydrateWithDefault();
+    const workspaceId = requireActiveWorkspaceId();
+
+    const paneId = useAppStore.getState().addPane(workspaceId, {
+      title: "X",
+      url: "https://x.example",
+      width: 400,
+    });
+
+    expect(useAppStore.getState().panes[paneId]?.autoScroll).toBe(false);
+  });
+
+  it("updatePane patches autoScroll", () => {
+    hydrateWithDefault();
+    const workspaceId = requireActiveWorkspaceId();
+    const paneId = useAppStore.getState().addPane(workspaceId, {
+      title: "X",
+      url: "https://x.example",
+      width: 400,
+    });
+
+    useAppStore.getState().updatePane(paneId, { autoScroll: true });
+
+    expect(useAppStore.getState().panes[paneId]?.autoScroll).toBe(true);
+  });
+
   it("clamps pane width to MIN_PANE_WIDTH on addPane and setPaneWidth", () => {
     hydrateWithDefault();
     const workspaceId = requireActiveWorkspaceId();

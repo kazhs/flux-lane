@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useAppStore } from "../../stores/appStore";
 import { useUiStore } from "../../stores/uiStore";
-import { selectActivePanes } from "../../stores/selectors";
 import { TextField } from "../../components/ui/TextField";
 import { Button } from "../../components/ui/Button";
 import { ServicePresetTile } from "../../components/pane/ServicePresetTile";
@@ -46,10 +45,7 @@ export function AddPaneView() {
   const handleAddPreset = (service: ServiceDefinition) => {
     if (!activeWorkspaceId) return;
 
-    const existingTitles = selectActivePanes(useAppStore.getState()).map(
-      (pane) => pane.title,
-    );
-    const title = nextServiceTitle(existingTitles, service.name);
+    const title = nextServiceTitle(service.name);
     const width = Math.round(window.innerWidth * defaultPaneWidthRatio);
     addPane(activeWorkspaceId, { title, url: service.url, width });
     setView("main");

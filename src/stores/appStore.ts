@@ -33,7 +33,7 @@ export interface AppActions {
   removePane: (paneId: PaneId) => void;
   updatePane: (
     paneId: PaneId,
-    patch: Partial<Pick<Pane, "title" | "url" | "muted">>,
+    patch: Partial<Pick<Pane, "title" | "url" | "muted" | "autoScroll">>,
   ) => void;
   setPaneWidth: (paneId: PaneId, width: number) => void;
   movePane: (paneId: PaneId, toIndex: number) => void;
@@ -154,6 +154,7 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       sessionId,
       width: clampPaneWidth(input.width),
       muted: false,
+      autoScroll: false,
     };
 
     set((s) => {

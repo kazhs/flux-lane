@@ -76,7 +76,7 @@ export function WorkspaceTab({
             cancel();
           }
         }}
-        className="my-1 w-24 rounded border border-accent bg-surface px-2 py-0.5 text-sm text-text outline-none"
+        className="my-1 w-[150px] rounded border border-accent bg-surface px-2 py-0.5 text-sm text-text outline-none"
       />
     );
   }
@@ -86,7 +86,7 @@ export function WorkspaceTab({
       type="button"
       onClick={onSelect}
       onContextMenu={onContextMenu}
-      className={`flex flex-col items-center justify-center rounded px-3 py-1 text-sm transition-colors ${
+      className={`flex min-w-[150px] flex-col items-center justify-center rounded px-3 py-1 text-sm transition-colors ${
         active
           ? "bg-surface-hover text-text"
           : "text-text-dim hover:bg-surface hover:text-text"
