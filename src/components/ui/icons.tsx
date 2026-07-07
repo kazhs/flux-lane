@@ -149,6 +149,22 @@ export function FacebookIcon({ size = 16, className }: IconProps) {
   );
 }
 
+export function ChevronLeftIcon({ size = 16, className }: IconProps) {
+  return (
+    <svg width={size} height={size} className={className} {...BASE_PROPS}>
+      <path d="M10 3l-5 5 5 5" />
+    </svg>
+  );
+}
+
+export function ChevronRightIcon({ size = 16, className }: IconProps) {
+  return (
+    <svg width={size} height={size} className={className} {...BASE_PROPS}>
+      <path d="M6 3l5 5-5 5" />
+    </svg>
+  );
+}
+
 export function GripIcon({ size = 16, className }: IconProps) {
   return (
     <svg

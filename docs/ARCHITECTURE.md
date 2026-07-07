@@ -102,6 +102,7 @@ Rust → TS イベント: `pane://page-load`（payload: `{ label, url, event: "s
 
 - Workspace 切替 = 旧 workspace の全ペインを `suspended`、新 workspace を実体化。WebView 数は常に「アクティブ workspace のペイン数」に抑えられる（`WebviewManager.reconcile`）。
 - **実装状況**: `active`/`suspended` に加え、`hidden` も `LayoutController` の可視判定（`paneVisibility.ts`）から駆動済み。左境界（ペインレール）をまたいだペインは WebView の bounds を可視部分にクランプして重なりを防ぎ（レールはネイティブ WebView より奥の DOM のため。クランプ中はページ左端が固定表示になる過渡アーティファクトあり）、可視部分が無くなったペインだけ hide してカード表示に落とす。右境界の部分はみ出しは window が自然にクリップするので visible のまま。`SuspendPolicy` の Strategy 化（時間ベースの自動 suspend 等）は未実装のまま将来課題。
+- **LRU 2 枚常駐**: workspace 切替の読み直し（`suspended` からの再生成）を減らすため、`WebviewManager` はアクティブ workspace に加え「直前にアクティブだった workspace」も desired 集合に含める（`computeDesiredPanes`、LRU 深さ 2）。直前 workspace 由来のペインは `backgroundPaneIds` として実体を保持したまま常に非表示にし（`applyVisibility` が overlay・`layoutHidden` と AND）、React 側にも placeholder が無いため `LayoutController` の計測対象外になる。アクティブ workspace に戻ると placeholder が再マウントされ、既存の計測 → bounds 反映経路でそのまま復帰する。フォーカス中ペインが background に落ちた場合はフォーカスを解除する。2 段より前の workspace は従来通り destroy（`suspended`）。
 
 ### 1.8 状態管理・永続化
 

@@ -100,6 +100,14 @@ export function PaneItem({ paneId }: PaneItemProps) {
     void webviewManager.setAutoScroll(paneId, autoScroll);
   };
 
+  const handleBack = () => {
+    void webviewManager.goBack(paneId);
+  };
+
+  const handleForward = () => {
+    void webviewManager.goForward(paneId);
+  };
+
   return (
     <div
       ref={setNodeRef}
@@ -118,7 +126,6 @@ export function PaneItem({ paneId }: PaneItemProps) {
         onReload={handleReload}
         onToggleAutoScroll={handleToggleAutoScroll}
         onToggleMute={handleToggleMute}
-        onClose={handleClose}
       />
       <PanePlaceholder
         width={pane.width}
@@ -130,6 +137,9 @@ export function PaneItem({ paneId }: PaneItemProps) {
             focused={focused}
             onPointerDown={handleHeaderPointerDown}
             dragHandleProps={{ ...attributes, ...listeners }}
+            onBack={handleBack}
+            onForward={handleForward}
+            onClose={handleClose}
           />
         }
         bodyRef={handleBodyRef}

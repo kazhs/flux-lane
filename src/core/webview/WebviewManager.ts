@@ -1,9 +1,8 @@
 import { useAppStore } from "../../stores/appStore";
 import { useUiStore } from "../../stores/uiStore";
-import { selectActivePanes } from "../../stores/selectors";
 import { PRESET_SERVICES } from "../services";
 import { matchServiceByUrl } from "../../lib/matchServiceByUrl";
-import type { OverlayMode, PaneId, Rect } from "../../types";
+import type { OverlayMode, PaneId, Rect, WorkspaceId } from "../../types";
 import {
   createPaneWebview,
   destroyPaneWebview,
@@ -28,6 +27,7 @@ import type {
 import { labelForPane, paneIdFromLabel } from "./paneLabel";
 import { layoutController } from "./LayoutController";
 import { computeWebviewOps } from "./reconcile";
+import { computeDesiredPanes } from "./workspaceResidency";
 import {
   AUTO_SCROLL_START_SCRIPT,
   AUTO_SCROLL_STOP_SCRIPT,
@@ -64,6 +64,12 @@ class WebviewManager {
   /** LayoutController が「常設レールの左境界をまたいだ」と判定した pane。
    * 表示可否は overlay と両方の AND で決まる（`applyVisibility`）。 */
   private readonly layoutHidden = new Set<PaneId>();
+  /** LRU 2 枚常駐の background 側（直前 workspace 由来で、アクティブ workspace には属さない）。
+   * WebView は生かすが必ず hidden にする（`applyVisibility` で他の非表示条件と AND）。 */
+  private backgroundPaneIds = new Set<PaneId>();
+  /** アクティブ workspace が切り替わる直前の workspaceId。React 外・永続化しない
+   * （`doReconcile` が `computeDesiredPanes` に渡す LRU の第 2 位）。 */
+  private previousWorkspaceId: WorkspaceId | null = null;
   private readonly unsubscribers: Unsubscribe[] = [];
   private unlistenPageLoad: Unsubscribe | null = null;
   private unlistenPointerDown: Unsubscribe | null = null;
@@ -81,7 +87,12 @@ class WebviewManager {
     await this.reconcile();
 
     this.unsubscribers.push(
-      useAppStore.subscribe(() => {
+      useAppStore.subscribe((state, prevState) => {
+        // アクティブ workspace の変化を検知し、LRU の第 2 位（直前 workspace）として
+        // 保持する。reconcile 前に確定させることで、この回の desired 集合に反映される。
+        if (state.activeWorkspaceId !== prevState.activeWorkspaceId) {
+          this.previousWorkspaceId = prevState.activeWorkspaceId;
+        }
         void this.reconcile();
       }),
     );
@@ -180,6 +191,19 @@ class WebviewManager {
     );
   }
 
+  /** ページ内履歴を 1 つ戻る。有効可否の取得手段が無いため常時発行する
+   * （履歴が無ければページ側で何も起きない）。 */
+  async goBack(paneId: PaneId): Promise<void> {
+    if (!this.createdSessionIds.has(paneId)) return;
+    await evalInPane(labelForPane(paneId), "history.back();");
+  }
+
+  /** ページ内履歴を 1 つ進む。`goBack` と同じ理由で常時発行する。 */
+  async goForward(paneId: PaneId): Promise<void> {
+    if (!this.createdSessionIds.has(paneId)) return;
+    await evalInPane(labelForPane(paneId), "history.forward();");
+  }
+
   /** LayoutController からの hidden 変化通知を受け、layoutHidden 集合を更新して
    * visibility を再計算する。変化した pane だけを runtime lifecycle にも反映する。 */
   setLayoutHidden(changes: ReadonlyMap<PaneId, boolean>): void {
@@ -204,8 +228,32 @@ class WebviewManager {
     if (!this.createdSessionIds.has(paneId)) return;
     const visible =
       (overlay === "none" || overlay === "resizing") &&
-      !this.layoutHidden.has(paneId);
+      !this.layoutHidden.has(paneId) &&
+      !this.backgroundPaneIds.has(paneId);
     void setPaneVisible(labelForPane(paneId), visible);
+  }
+
+  /** `backgroundPaneIds` を新しい集合に更新し、変化した pane だけ visibility を再適用する。
+   * 新たに background になったペインがフォーカス中だった場合はフォーカスを外す
+   * （background の WebView はクリックが物理的に届かないため、フォーカス状態を残す
+   * 理由が無い）。 */
+  private updateBackgroundPaneIds(next: ReadonlySet<PaneId>): void {
+    const overlay = useUiStore.getState().overlay;
+    const changed = new Set<PaneId>();
+    for (const paneId of next) {
+      if (!this.backgroundPaneIds.has(paneId)) changed.add(paneId);
+    }
+    for (const paneId of this.backgroundPaneIds) {
+      if (!next.has(paneId)) changed.add(paneId);
+    }
+    this.backgroundPaneIds = new Set(next);
+
+    for (const paneId of changed) {
+      this.applyVisibility(paneId, overlay);
+      if (next.has(paneId) && useUiStore.getState().focusedPaneId === paneId) {
+        useUiStore.getState().setFocusedPane(null);
+      }
+    }
   }
 
   /**
@@ -238,8 +286,11 @@ class WebviewManager {
       if (!allPaneIds.has(paneId)) this.failedPaneIds.delete(paneId);
     }
 
-    const activePanes = selectActivePanes(useAppStore.getState());
-    const desired = activePanes
+    const { panes: desiredPanes, backgroundPaneIds } = computeDesiredPanes(
+      useAppStore.getState(),
+      this.previousWorkspaceId,
+    );
+    const desired = desiredPanes
       .filter((pane) => !this.failedPaneIds.has(pane.id))
       .map((pane) => ({
         paneId: pane.id,
@@ -258,6 +309,7 @@ class WebviewManager {
       // ここで払わないと destroy 済み paneId が layoutHidden に残り続ける（表示には影響しないが
       // メモリリークになる）。
       this.layoutHidden.delete(paneId);
+      this.backgroundPaneIds.delete(paneId);
       if (useUiStore.getState().focusedPaneId === paneId) {
         useUiStore.getState().setFocusedPane(null);
       }
@@ -304,6 +356,10 @@ class WebviewManager {
         this.failedPaneIds.add(op.paneId);
       }
     }
+
+    // create/destroy 確定後に background 集合を更新する。生成直後の pane にも
+    // hidden を確実に適用するため（`applyVisibility` は create 済みの pane のみ作用する）。
+    this.updateBackgroundPaneIds(backgroundPaneIds);
   }
 
   private handleOverlayChange(overlay: OverlayMode): void {
@@ -362,6 +418,12 @@ class WebviewManager {
       uiState.setPaneCurrentUrl(paneId, payload.url);
 
       const pane = useAppStore.getState().panes[paneId];
+      // 最後に表示していたフルロード URL を保存する。再生成（workspace 切替の
+      // suspend/resume・再起動）時にこの URL から開き直せるようにするため
+      // （リダイレクトやページ内ナビゲーションを追随した最終地点になる）。
+      if (pane && pane.url !== payload.url) {
+        useAppStore.getState().updatePane(paneId, { url: payload.url });
+      }
       if (pane?.muted) {
         // ナビゲーションで init script が消えるため、finished 時に再 eval する。
         void evalInPane(labelForPane(paneId), MUTE_SCRIPT);

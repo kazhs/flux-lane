@@ -1,6 +1,5 @@
 import { IconButton } from "../ui/IconButton";
 import {
-  CloseIcon,
   PauseIcon,
   PlayIcon,
   ReloadIcon,
@@ -15,12 +14,11 @@ export type PaneSideMenuProps = {
   onReload: () => void;
   onToggleAutoScroll: () => void;
   onToggleMute: () => void;
-  onClose: () => void;
 };
 
 /**
- * ペイン左端の縦ストリップ（幅 28px）。アクション系（リロード・ミュート・
- * オートスクロール・削除）はすべてここに集約する（ヘッダーは表示専用）。
+ * ペイン左端の縦ストリップ（幅 28px）。リロード・ミュート・オートスクロールを集約する
+ * （ナビゲーション・閉じるはヘッダー右端 `PaneHeader` の担当）。
  * `PanePlaceholder` の外側の兄弟として配置することで、WebView bounds
  * （placeholder の bodyRef rect 由来、`LayoutController` 参照）と重ならない。
  */
@@ -31,7 +29,6 @@ export function PaneSideMenu({
   onReload,
   onToggleAutoScroll,
   onToggleMute,
-  onClose,
 }: PaneSideMenuProps) {
   return (
     <div className="chrome-surface flex h-full w-7 shrink-0 flex-col items-center gap-0.5 border-r border-border py-1">
@@ -52,8 +49,6 @@ export function PaneSideMenu({
         active={autoScroll}
         onClick={onToggleAutoScroll}
       />
-      <div className="flex-1" />
-      <IconButton aria-label="Close" icon={<CloseIcon />} onClick={onClose} />
     </div>
   );
 }

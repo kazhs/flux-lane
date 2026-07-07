@@ -1,6 +1,12 @@
 import type { HTMLAttributes, PointerEvent as ReactPointerEvent } from "react";
 import { PANE_HEADER_HEIGHT } from "../../lib/constants";
-import { GripIcon } from "../ui/icons";
+import { IconButton } from "../ui/IconButton";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CloseIcon,
+  GripIcon,
+} from "../ui/icons";
 
 export type PaneHeaderProps = {
   title: string;
@@ -11,6 +17,9 @@ export type PaneHeaderProps = {
   focused?: boolean;
   onPointerDown?: (event: ReactPointerEvent<HTMLDivElement>) => void;
   dragHandleProps?: HTMLAttributes<HTMLElement>;
+  onBack?: () => void;
+  onForward?: () => void;
+  onClose?: () => void;
 };
 
 function hostnameOf(url: string): string {
@@ -32,6 +41,9 @@ export function PaneHeader({
   focused,
   onPointerDown,
   dragHandleProps,
+  onBack,
+  onForward,
+  onClose,
 }: PaneHeaderProps) {
   return (
     <div
@@ -58,6 +70,20 @@ export function PaneHeader({
         </span>
       )}
       <span className="truncate text-xs text-text-dim">{hostnameOf(url)}</span>
+      <div className="flex-1" />
+      <div className="flex shrink-0 items-center gap-0.5">
+        <IconButton
+          aria-label="Back"
+          icon={<ChevronLeftIcon />}
+          onClick={onBack}
+        />
+        <IconButton
+          aria-label="Forward"
+          icon={<ChevronRightIcon />}
+          onClick={onForward}
+        />
+        <IconButton aria-label="Close" icon={<CloseIcon />} onClick={onClose} />
+      </div>
     </div>
   );
 }
