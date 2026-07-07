@@ -55,7 +55,7 @@ a {
   scrollbar-width: auto;
 }
 .pane-strip::-webkit-scrollbar {
-  height: 10px;
+  height: 15px;
 }
 /* track は透過して body のグラデーションを透けさせる（下端帯・placeholder も同様）。 */
 .pane-strip::-webkit-scrollbar-track {
@@ -63,7 +63,7 @@ a {
 }
 .pane-strip::-webkit-scrollbar-thumb {
   background: var(--color-border);
-  border-radius: 5px;
+  border-radius: 7px;
 }
 .pane-strip::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-dim);
