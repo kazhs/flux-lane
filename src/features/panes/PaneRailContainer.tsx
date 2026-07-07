@@ -11,6 +11,7 @@ import { iconForUrl } from "../../components/pane/servicePresetIcons";
 import { popupPaneMenu } from "../../core/ipc/commands";
 import { onPaneMenuAction } from "../../core/ipc/events";
 import { labelForPane, paneIdFromLabel } from "../../core/webview/paneLabel";
+import { confirmDialog } from "../../core/ipc/dialog";
 import type { Pane, PaneId, PaneRuntimeState } from "../../types";
 
 function resolveIcon(
@@ -52,14 +53,16 @@ export function PaneRailContainer() {
   // 受け取る。クリックによるジャンプ + フォーカスは既存の handleSelect のまま変更しない。
   useEffect(() => {
     let unlisten: (() => void) | undefined;
-    void onPaneMenuAction((payload) => {
+    void onPaneMenuAction(async (payload) => {
       if (payload.action !== "delete") return;
       const paneId = paneIdFromLabel(payload.label);
       if (!paneId) return;
       const pane = useAppStore.getState().panes[paneId];
       const title = pane?.title ?? paneId;
-      if (!window.confirm(`「${title}」を閉じる？セッションも削除される`))
-        return;
+      const ok = await confirmDialog(
+        `「${title}」を閉じる？セッションも削除される`,
+      );
+      if (!ok) return;
       removePane(paneId);
       removePaneRuntime(paneId);
     }).then((fn) => {

@@ -5,6 +5,7 @@
   "webviews": ["main-ui"],
   "permissions": [
     "core:default",
+    "dialog:allow-confirm",
     "allow-create-pane-webview",
     "allow-destroy-pane-webview",
     "allow-set-pane-bounds",

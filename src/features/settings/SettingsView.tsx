@@ -4,6 +4,7 @@ import { Button } from "../../components/ui/Button";
 import { TextField } from "../../components/ui/TextField";
 import { IconButton } from "../../components/ui/IconButton";
 import { CloseIcon } from "../../components/ui/icons";
+import { confirmDialog } from "../../core/ipc/dialog";
 
 const MIN_RATIO_PERCENT = 20;
 const MAX_RATIO_PERCENT = 90;
@@ -29,8 +30,9 @@ export function SettingsView() {
     updateSettings({ defaultPaneWidthRatio: clamped / 100 });
   };
 
-  const handleRemoveWorkspace = (id: string, name: string) => {
-    if (!window.confirm(`ワークスペース「${name}」を削除しますか？`)) return;
+  const handleRemoveWorkspace = async (id: string, name: string) => {
+    const ok = await confirmDialog(`ワークスペース「${name}」を削除しますか？`);
+    if (!ok) return;
     removeWorkspace(id);
   };
 

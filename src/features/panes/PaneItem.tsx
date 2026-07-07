@@ -10,6 +10,7 @@ import { PanePlaceholder } from "../../components/pane/PanePlaceholder";
 import { PaneResizeHandle } from "../../components/pane/PaneResizeHandle";
 import { MIN_PANE_WIDTH } from "../../lib/constants";
 import { useResizePane } from "./useResizePane";
+import { confirmDialog } from "../../core/ipc/dialog";
 import type { PaneId } from "../../types";
 
 export type PaneItemProps = {
@@ -80,9 +81,11 @@ export function PaneItem({ paneId }: PaneItemProps) {
     void webviewManager.setMuted(paneId, muted);
   };
 
-  const handleClose = () => {
-    if (!window.confirm(`「${pane.title}」を閉じる？セッションも削除される`))
-      return;
+  const handleClose = async () => {
+    const ok = await confirmDialog(
+      `「${pane.title}」を閉じる？セッションも削除される`,
+    );
+    if (!ok) return;
     removePane(paneId);
     removePaneRuntime(paneId);
   };

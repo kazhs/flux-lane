@@ -7,6 +7,9 @@ use tauri::{LogicalPosition, LogicalSize, WebviewBuilder, WebviewUrl, WindowBuil
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // wry (WKWebView) は window.confirm/alert を実装していないため、確認ダイアログは
+        // dialog plugin のネイティブパネルを使う（wry #584）。
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let window = WindowBuilder::new(app, "main")
                 .title("flux-lane")
