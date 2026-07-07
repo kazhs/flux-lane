@@ -12,6 +12,8 @@ import { PaneSideMenu } from "../../components/pane/PaneSideMenu";
 import { MIN_PANE_WIDTH } from "../../lib/constants";
 import { useResizePane } from "./useResizePane";
 import { closePaneWithConfirm } from "./paneClose";
+import { resolvePaneDisplayName } from "./paneDisplay";
+import { PRESET_SERVICES } from "../../core/services";
 import type { PaneId } from "../../types";
 
 export type PaneItemProps = {
@@ -70,6 +72,14 @@ export function PaneItem({ paneId }: PaneItemProps) {
 
   if (!pane) return null;
 
+  // 表示名はレールと同じ解決規則（プリセット一致ならサービス名。保存済みの
+  // "X 2" 等の旧連番タイトルもここで吸収される）。
+  const displayName = resolvePaneDisplayName(
+    runtime?.currentUrl ?? pane.url,
+    pane.title,
+    PRESET_SERVICES,
+  );
+
   const handleReload = () => {
     void webviewManager.reload(paneId);
   };
@@ -81,7 +91,7 @@ export function PaneItem({ paneId }: PaneItemProps) {
   };
 
   const handleClose = () => {
-    void closePaneWithConfirm(paneId, pane.title);
+    void closePaneWithConfirm(paneId, displayName);
   };
 
   const handleToggleAutoScroll = () => {
@@ -114,7 +124,7 @@ export function PaneItem({ paneId }: PaneItemProps) {
         width={pane.width}
         header={
           <PaneHeader
-            title={pane.title}
+            title={displayName}
             url={runtime?.currentUrl ?? pane.url}
             accountLabel={runtime?.accountLabel ?? null}
             focused={focused}
@@ -124,7 +134,7 @@ export function PaneItem({ paneId }: PaneItemProps) {
         }
         bodyRef={handleBodyRef}
         showCard={overlay !== "none" || runtime?.lifecycle === "hidden"}
-        cardTitle={pane.title}
+        cardTitle={displayName}
       />
       <PaneResizeHandle onPointerDown={handleResizePointerDown} />
     </div>
