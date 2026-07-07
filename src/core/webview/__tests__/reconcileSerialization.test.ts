@@ -46,6 +46,8 @@ async function flushMicrotasks(): Promise<void> {
 describe("WebviewManager reconcile serialization", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // WebviewManager は viewport 補正のため window.innerHeight を参照する（node 環境には無い）。
+    vi.stubGlobal("window", { innerHeight: 800 });
   });
 
   it("create の解決前に store が再度更新されても、create はペインごとに 1 回で destroy は発生しない", async () => {

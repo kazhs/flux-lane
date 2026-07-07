@@ -27,9 +27,24 @@ struct PaneLoadEventPayload {
     event: &'static str,
 }
 
-fn bounds_to_rect(bounds: Bounds) -> Rect {
+/// DOM 座標（main-ui 相対の logical px）→ 子 webview のネイティブ座標系へ変換する。
+///
+/// macOS では子 webview の座標がタイトルバー込みの window frame 原点で解釈される一方、
+/// main-ui の DOM ビューポートはタイトルバー分だけ短い（実測: window inner 800 に対し
+/// DOM viewport 772）。tauri の `Webview::size()` 等の読み値はこの差を反映しないため、
+/// **TS 側が実測した `window.innerHeight`（viewport_height）** を受け取り、
+/// `inner_size.height - viewport_height` を y 補正として加算する。差が無い環境では 0。
+fn bounds_to_rect(app: &AppHandle, bounds: Bounds, viewport_height: f64) -> Rect {
+    let offset_y: f64 = (|| {
+        let window = app.get_window("main")?;
+        let scale = window.scale_factor().ok()?;
+        let inner_h = window.inner_size().ok()?.to_logical::<f64>(scale).height;
+        Some((inner_h - viewport_height).max(0.0))
+    })()
+    .unwrap_or(0.0);
+
     Rect {
-        position: Position::Logical(LogicalPosition::new(bounds.x, bounds.y)),
+        position: Position::Logical(LogicalPosition::new(bounds.x, bounds.y + offset_y)),
         size: Size::Logical(LogicalSize::new(bounds.width, bounds.height)),
     }
 }
@@ -46,6 +61,7 @@ pub fn create_pane_webview(
     url: String,
     session_id: String,
     bounds: Bounds,
+    viewport_height: f64,
 ) -> Result<(), String> {
     if app.get_webview(&label).is_some() {
         return Err(format!("webview already exists: {label}"));
@@ -85,12 +101,14 @@ pub fn create_pane_webview(
             );
         });
 
+    // 初期 bounds も main-ui 原点補正済みの座標で置く（直後の setBounds でも上書きされる）。
+    let rect = bounds_to_rect(&app, bounds, viewport_height);
+    let (position, size) = match (rect.position, rect.size) {
+        (Position::Logical(p), Size::Logical(s)) => (p, s),
+        _ => unreachable!("bounds_to_rect always returns logical position/size"),
+    };
     window
-        .add_child(
-            builder,
-            LogicalPosition::new(bounds.x, bounds.y),
-            LogicalSize::new(bounds.width, bounds.height),
-        )
+        .add_child(builder, position, size)
         .map_err(|e| e.to_string())?;
 
     Ok(())
@@ -111,10 +129,15 @@ pub fn destroy_pane_webview(app: AppHandle, label: String, purge_data: bool) -> 
 }
 
 #[tauri::command]
-pub fn set_pane_bounds(app: AppHandle, label: String, bounds: Bounds) -> Result<(), String> {
+pub fn set_pane_bounds(
+    app: AppHandle,
+    label: String,
+    bounds: Bounds,
+    viewport_height: f64,
+) -> Result<(), String> {
     let webview = get_pane_webview(&app, &label)?;
     webview
-        .set_bounds(bounds_to_rect(bounds))
+        .set_bounds(bounds_to_rect(&app, bounds, viewport_height))
         .map_err(|e| e.to_string())
 }
 

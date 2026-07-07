@@ -10,6 +10,9 @@ export interface CreatePaneWebviewParams {
   url: string;
   sessionId: SessionId;
   bounds: Bounds;
+  /** DOM の実測ビューポート高（window.innerHeight）。Rust 側で子 webview の
+   * 座標原点補正（タイトルバー差分）に使う。 */
+  viewportHeight: number;
 }
 
 export function createPaneWebview(
@@ -25,8 +28,12 @@ export function destroyPaneWebview(
   return invoke("destroy_pane_webview", { label, purgeData });
 }
 
-export function setPaneBounds(label: string, bounds: Bounds): Promise<void> {
-  return invoke("set_pane_bounds", { label, bounds });
+export function setPaneBounds(
+  label: string,
+  bounds: Bounds,
+  viewportHeight: number,
+): Promise<void> {
+  return invoke("set_pane_bounds", { label, bounds, viewportHeight });
 }
 
 export function setPaneVisible(label: string, visible: boolean): Promise<void> {

@@ -131,7 +131,7 @@ class WebviewManager {
     for (const [paneId, rect] of rects) {
       if (!this.createdSessionIds.has(paneId)) continue;
       try {
-        await setPaneBounds(labelForPane(paneId), rect);
+        await setPaneBounds(labelForPane(paneId), rect, window.innerHeight);
       } catch (error) {
         console.error(
           `[WebviewManager] set_pane_bounds failed for pane ${paneId}:`,
@@ -267,6 +267,7 @@ class WebviewManager {
           url: op.url,
           sessionId: op.sessionId,
           bounds: { x: 0, y: 0, width: 0, height: 0 },
+          viewportHeight: window.innerHeight,
         });
         this.createdSessionIds.set(op.paneId, op.sessionId);
       } catch (error) {
