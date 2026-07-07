@@ -1,7 +1,8 @@
 fn main() {
     // ペインフォーカスモデルの remote capability (pane-remote.json) で pane webview
     // (label: pane-*, remote https オリジン) から notify_pane_pointer_down /
-    // forward_pane_wheel の 2 command だけを許可するには、app 側コマンドの ACL manifest
+    // forward_pane_wheel / report_pane_account の 3 command だけを許可するには、
+    // app 側コマンドの ACL manifest
     // (permission: allow-<command>) が必要。ACL manifest を 1 つでも持たせると
     // 「app コマンドは capability で明示許可されていないと呼べない」という制約が
     // local origin (main-ui) にも及ぶため、既存の全 command も一緒に列挙し、
@@ -22,6 +23,7 @@ fn main() {
             "complete_shutdown",
             "notify_pane_pointer_down",
             "forward_pane_wheel",
+            "report_pane_account",
         ]),
     ))
     .expect("failed to run tauri-build");

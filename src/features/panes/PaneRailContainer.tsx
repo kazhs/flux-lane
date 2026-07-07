@@ -12,6 +12,7 @@ import { popupPaneMenu } from "../../core/ipc/commands";
 import { onPaneMenuAction } from "../../core/ipc/events";
 import { labelForPane, paneIdFromLabel } from "../../core/webview/paneLabel";
 import { confirmDialog } from "../../core/ipc/dialog";
+import { selectPane } from "./paneNavigation";
 import type { Pane, PaneId, PaneRuntimeState } from "../../types";
 
 function resolveIcon(
@@ -29,17 +30,6 @@ function resolveIcon(
   );
 }
 
-/** レール起点のジャンプ: strip 側の scroll イベントを LayoutController が拾って
- * WebView bounds を追随させる既存機構に乗せる（新規の同期経路は作らない）。 */
-function scrollPaneIntoView(paneId: PaneId): void {
-  const el = document.querySelector(`[data-pane-id="${paneId}"]`);
-  el?.scrollIntoView({
-    behavior: "smooth",
-    inline: "nearest",
-    block: "nearest",
-  });
-}
-
 export function PaneRailContainer() {
   const paneIds = useAppStore(selectActivePaneIds);
   const panes = useAppStore((s) => s.panes);
@@ -47,7 +37,6 @@ export function PaneRailContainer() {
   const focusedPaneId = useUiStore((s) => s.focusedPaneId);
   const removePane = useAppStore((s) => s.removePane);
   const removePaneRuntime = useUiStore((s) => s.removePaneRuntime);
-  const setFocusedPane = useUiStore((s) => s.setFocusedPane);
   const setView = useUiStore((s) => s.setView);
 
   // レールのネイティブコンテキストメニュー（Rust 側 `popup_pane_menu`）からの削除操作を
@@ -90,14 +79,10 @@ export function PaneRailContainer() {
     .map((pane) => ({
       paneId: pane.id,
       title: pane.title,
+      accountLabel: paneRuntime[pane.id]?.accountLabel ?? null,
       iconNode: resolveIcon(pane, paneRuntime[pane.id]),
       focused: focusedPaneId === pane.id,
     }));
-
-  const handleSelect = (paneId: PaneId) => {
-    scrollPaneIntoView(paneId);
-    setFocusedPane(paneId);
-  };
 
   const handleContextMenu = (paneId: PaneId, event: ReactMouseEvent) => {
     event.preventDefault();
@@ -107,7 +92,7 @@ export function PaneRailContainer() {
   return (
     <PaneRail
       items={items}
-      onSelect={handleSelect}
+      onSelect={selectPane}
       onContextMenu={handleContextMenu}
       onAddPane={() => setView("add-pane")}
     />

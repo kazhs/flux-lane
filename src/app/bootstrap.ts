@@ -4,7 +4,8 @@ import { layoutController } from "../core/webview/LayoutController";
 import { createPersister, type Persister } from "../core/persistence/persister";
 import { loadOrDefault } from "../core/persistence/loadOrDefault";
 import { completeShutdown } from "../core/ipc/commands";
-import { onAppCloseRequested } from "../core/ipc/events";
+import { onAppCloseRequested, onAppGoto } from "../core/ipc/events";
+import { selectPaneByIndex } from "../features/panes/paneNavigation";
 
 let persister: Persister | null = null;
 
@@ -47,6 +48,19 @@ export async function bootstrap(): Promise<void> {
 
   void onAppCloseRequested(() => {
     void shutdownGracefully();
+  });
+
+  // ネイティブメニューの「移動」サブメニュー（⌘1〜9 / ⌃1〜9）。React 外・モジュールレベルで
+  // 一度だけ登録する（bootstrap は main.tsx から一度しか呼ばれない）。
+  void onAppGoto((payload) => {
+    if (payload.kind === "pane") {
+      selectPaneByIndex(payload.index);
+      return;
+    }
+    const workspaceId =
+      useAppStore.getState().workspaceOrder[payload.index - 1];
+    if (!workspaceId) return;
+    useAppStore.getState().setActiveWorkspace(workspaceId);
   });
 
   // 二段階シャットダウンが主経路。beforeunload は reload 等の取りこぼし向け best-effort。

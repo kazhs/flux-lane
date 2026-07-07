@@ -6,21 +6,26 @@ import { WorkspaceTab } from "./WorkspaceTab";
 export type WorkspaceBarProps = {
   workspaces: { id: string; name: string }[];
   activeId: string | null;
+  /** インライン編集モード中のワークスペース id（ネイティブメニューの「名前を変更」）。 */
+  editingWorkspaceId: string | null;
   onSelect: (id: string) => void;
   onAddWorkspace: () => void;
-  onAddPane: () => void;
   onOpenSettings: () => void;
   onContextMenu: (id: string, event: MouseEvent) => void;
+  onRenameSubmit: (id: string, name: string) => void;
+  onRenameCancel: () => void;
 };
 
 export function WorkspaceBar({
   workspaces,
   activeId,
+  editingWorkspaceId,
   onSelect,
   onAddWorkspace,
-  onAddPane,
   onOpenSettings,
   onContextMenu,
+  onRenameSubmit,
+  onRenameCancel,
 }: WorkspaceBarProps) {
   return (
     <div className="flex h-9 items-center border-b border-border bg-surface pr-2">
@@ -30,8 +35,11 @@ export function WorkspaceBar({
             key={workspace.id}
             name={workspace.name}
             active={workspace.id === activeId}
+            editing={workspace.id === editingWorkspaceId}
             onSelect={() => onSelect(workspace.id)}
             onContextMenu={(event) => onContextMenu(workspace.id, event)}
+            onRenameSubmit={(name) => onRenameSubmit(workspace.id, name)}
+            onRenameCancel={onRenameCancel}
           />
         ))}
         <IconButton
@@ -42,11 +50,6 @@ export function WorkspaceBar({
         />
       </div>
       <div className="ml-auto flex items-center gap-1">
-        <IconButton
-          aria-label="ペインを追加"
-          icon={<PlusIcon />}
-          onClick={onAddPane}
-        />
         <IconButton
           aria-label="Settings"
           icon={<SettingsIcon />}

@@ -18,9 +18,14 @@ const POINTER_DOWN_MIN_INTERVAL: Duration = Duration::from_millis(150);
 /// wheel 転送の per-label 最小間隔。トラックパッドの 120Hz（約 8ms 間隔）を通し、
 /// tight loop での flood を落とす。
 const WHEEL_MIN_INTERVAL: Duration = Duration::from_millis(4);
+/// account 通知の per-label 最小間隔。ページ内 DOM の変化に追随する程度で十分。
+const ACCOUNT_MIN_INTERVAL: Duration = Duration::from_millis(1000);
+/// account ハンドルの最大長。
+const ACCOUNT_HANDLE_MAX_LEN: usize = 64;
 
 static LAST_POINTER_DOWN: Mutex<Option<HashMap<String, Instant>>> = Mutex::new(None);
 static LAST_WHEEL: Mutex<Option<HashMap<String, Instant>>> = Mutex::new(None);
+static LAST_ACCOUNT: Mutex<Option<HashMap<String, Instant>>> = Mutex::new(None);
 
 /// per-label のレートリミット判定。間隔内の呼び出しは false（黙って捨てる）。
 fn pass_rate_limit(
@@ -57,6 +62,13 @@ struct PaneWheelPayload {
     label: String,
     delta_x: f64,
     delta_y: f64,
+}
+
+/// `pane://account` イベントの payload。ドキュメント上の契約: `{ label, handle }`。
+#[derive(Debug, Clone, Serialize)]
+struct PaneAccountPayload {
+    label: String,
+    handle: String,
 }
 
 /// ペイン内で pointerdown を検知したことを main-ui に知らせる。フォーカス取得の起点。
@@ -98,5 +110,29 @@ pub fn forward_pane_wheel(webview: Webview, delta_x: f64, delta_y: f64) -> Resul
                 delta_y,
             },
         )
+        .map_err(|e| e.to_string())
+}
+
+/// ペイン内スクリプトがログイン済みアカウントのハンドルを検知したときに呼ぶ（X 等の
+/// `accountProbeScript`）。クライアント申告の内容はページ JS が任意に送れるため、
+/// 真正性の完全な検証は不可能（`pane_focus.rs` と同じ前提）。長さと制御文字の有無だけを
+/// 検証し、per-label のレートリミットを既存の `pass_rate_limit` で流用する。
+#[tauri::command]
+pub fn report_pane_account(webview: Webview, handle: String) -> Result<(), String> {
+    let label = webview.label().to_string();
+
+    if handle.is_empty() || handle.chars().count() > ACCOUNT_HANDLE_MAX_LEN {
+        return Err("invalid handle: length must be 1..=64".to_string());
+    }
+    if handle.chars().any(|c| c.is_control()) {
+        return Err("invalid handle: control character not allowed".to_string());
+    }
+
+    if !pass_rate_limit(&LAST_ACCOUNT, &label, ACCOUNT_MIN_INTERVAL) {
+        return Ok(());
+    }
+
+    webview
+        .emit_to("main-ui", "pane://account", PaneAccountPayload { label, handle })
         .map_err(|e| e.to_string())
 }

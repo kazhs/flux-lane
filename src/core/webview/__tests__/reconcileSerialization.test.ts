@@ -15,6 +15,7 @@ vi.mock("../../ipc/events", () => ({
   onPanePageLoad: vi.fn().mockResolvedValue(() => {}),
   onPanePointerDown: vi.fn().mockResolvedValue(() => {}),
   onPaneWheel: vi.fn().mockResolvedValue(() => {}),
+  onPaneAccount: vi.fn().mockResolvedValue(() => {}),
 }));
 
 import { createPaneWebview, destroyPaneWebview } from "../../ipc/commands";

@@ -24,13 +24,19 @@ pub fn run() {
                 LogicalSize::new(1280.0, 800.0),
             )?;
 
+            // app-wide メニュー（標準メニュー + 「移動」サブメニュー、⌘1〜9 / ⌃1〜9）。
+            // ペイン WebView にキーボードフォーカスがあると DOM keydown が main-ui に届かない
+            // ため、ショートカットはネイティブメニューのアクセラレータ方式で実装する。
+            commands::app_menu::build_and_set_menu(app)?;
+
             // レールのネイティブコンテキストメニュー（`popup_pane_menu` / `popup_workspace_menu`）
-            // のクリック結果を main-ui へ中継する。tray icon 等、他のメニュー由来の event id は
-            // 各 `handle_menu_event` 側で prefix チェックして無視する。
+            // と app-wide メニューのクリック結果を main-ui へ中継する。tray icon 等、他のメニュー
+            // 由来の event id は各 `handle_menu_event` 側で prefix チェックして無視する。
             let app_handle = app.handle().clone();
             window.on_menu_event(move |_window, event| {
                 commands::pane_menu::handle_menu_event(&app_handle, event.id().as_ref());
                 commands::workspace_menu::handle_menu_event(&app_handle, event.id().as_ref());
+                commands::app_menu::handle_menu_event(&app_handle, event.id().as_ref());
             });
 
             // 二段階シャットダウン: close を一旦止めて main-ui に永続化 flush を依頼し、
@@ -58,6 +64,7 @@ pub fn run() {
             commands::workspace_menu::popup_workspace_menu,
             commands::pane_events::notify_pane_pointer_down,
             commands::pane_events::forward_pane_wheel,
+            commands::pane_events::report_pane_account,
             commands::storage::load_persisted_state,
             commands::storage::save_persisted_state,
             commands::shutdown::complete_shutdown,

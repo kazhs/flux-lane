@@ -4,6 +4,8 @@
 import { listen } from "@tauri-apps/api/event";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import type {
+  AppGotoEventPayload,
+  PaneAccountEventPayload,
   PaneLoadEventPayload,
   PaneMenuActionEventPayload,
   PanePointerDownEventPayload,
@@ -52,6 +54,23 @@ export function onWorkspaceMenuAction(
       callback(event.payload);
     },
   );
+}
+
+export function onPaneAccount(
+  callback: (payload: PaneAccountEventPayload) => void,
+): Promise<UnlistenFn> {
+  return listen<PaneAccountEventPayload>("pane://account", (event) => {
+    callback(event.payload);
+  });
+}
+
+/** ネイティブメニューの「移動」サブメニュー（⌘1〜9 / ⌃1〜9）操作（app://goto）。 */
+export function onAppGoto(
+  callback: (payload: AppGotoEventPayload) => void,
+): Promise<UnlistenFn> {
+  return listen<AppGotoEventPayload>("app://goto", (event) => {
+    callback(event.payload);
+  });
 }
 
 /** CloseRequested を Rust 側が一旦止めたときの flush 依頼（app://close-requested）。 */

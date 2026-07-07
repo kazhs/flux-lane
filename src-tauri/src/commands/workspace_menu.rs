@@ -8,6 +8,7 @@ use tauri::{
     AppHandle, Emitter, Manager,
 };
 
+const RENAME_ITEM_PREFIX: &str = "workspace-rename::";
 const DELETE_ITEM_PREFIX: &str = "workspace-delete::";
 
 /// `workspace://menu-action` イベントの payload。ドキュメント上の契約: `{ workspaceId, action }`。
@@ -18,9 +19,9 @@ struct WorkspaceMenuActionPayload {
     action: &'static str,
 }
 
-/// WorkspaceTab の右クリックで呼ばれる。カーソル位置にネイティブメニューを 1 項目
-/// （「ワークスペースを削除…」）だけ表示する。最後の 1 個の workspace の場合は
-/// `is_last` で disabled にする（store 側の `removeWorkspace` も no-op ガード済みだが、
+/// WorkspaceTab の右クリックで呼ばれる。カーソル位置にネイティブメニューを 2 項目
+/// （「名前を変更」「ワークスペースを削除…」）表示する。最後の 1 個の workspace の場合は
+/// 削除項目を `is_last` で disabled にする（store 側の `removeWorkspace` も no-op ガード済みだが、
 /// メニュー時点でも操作不能を明示する）。クリック結果は `on_menu_event`（`lib.rs` の
 /// setup 内で登録）が `workspace://menu-action` として main-ui に emit する。
 #[tauri::command]
@@ -33,6 +34,13 @@ pub fn popup_workspace_menu(
         .get_window("main")
         .ok_or_else(|| "main window not found".to_string())?;
 
+    let rename_item = MenuItemBuilder::with_id(
+        format!("{RENAME_ITEM_PREFIX}{workspace_id}"),
+        "名前を変更",
+    )
+    .build(&app)
+    .map_err(|e| e.to_string())?;
+
     let delete_item = MenuItemBuilder::with_id(
         format!("{DELETE_ITEM_PREFIX}{workspace_id}"),
         "ワークスペースを削除…",
@@ -42,6 +50,7 @@ pub fn popup_workspace_menu(
     .map_err(|e| e.to_string())?;
 
     let menu = MenuBuilder::new(&app)
+        .item(&rename_item)
         .item(&delete_item)
         .build()
         .map_err(|e| e.to_string())?;
@@ -52,7 +61,11 @@ pub fn popup_workspace_menu(
 /// `lib.rs` の `Window::on_menu_event` から呼ぶ。このメニュー由来でない event id は無視する
 /// （`pane_menu::handle_menu_event` と同じ prefix チェック方式。混在しても安全）。
 pub fn handle_menu_event(app: &AppHandle, event_id: &str) {
-    let Some(workspace_id) = event_id.strip_prefix(DELETE_ITEM_PREFIX) else {
+    let (workspace_id, action) = if let Some(id) = event_id.strip_prefix(RENAME_ITEM_PREFIX) {
+        (id, "rename")
+    } else if let Some(id) = event_id.strip_prefix(DELETE_ITEM_PREFIX) {
+        (id, "delete")
+    } else {
         return;
     };
 
@@ -61,7 +74,7 @@ pub fn handle_menu_event(app: &AppHandle, event_id: &str) {
         "workspace://menu-action",
         WorkspaceMenuActionPayload {
             workspace_id: workspace_id.to_string(),
-            action: "delete",
+            action,
         },
     );
 }

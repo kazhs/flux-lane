@@ -5,6 +5,9 @@ import { PlusIcon } from "../ui/icons";
 export type PaneRailItem = {
   paneId: PaneId;
   title: string;
+  /** サービスの `accountProbeScript` が検知したログイン中アカウントのハンドル。
+   * 未検知・非対応サービスは null（アイコンのみ表示）。 */
+  accountLabel: string | null;
   iconNode: ReactNode;
   focused: boolean;
 };
@@ -40,10 +43,14 @@ export function PaneRail({
           <div key={item.paneId} className="flex justify-center">
             <button
               type="button"
-              title={item.title}
+              title={
+                item.accountLabel
+                  ? `${item.title} (${item.accountLabel})`
+                  : item.title
+              }
               onClick={() => onSelect(item.paneId)}
               onContextMenu={(event) => onContextMenu(item.paneId, event)}
-              className={`relative flex h-8 w-8 items-center justify-center rounded text-text-dim transition-colors hover:bg-surface-hover hover:text-text ${
+              className={`relative flex w-10 flex-col items-center justify-center gap-0.5 rounded px-1 py-1.5 text-text-dim transition-colors hover:bg-surface-hover hover:text-text ${
                 item.focused ? "bg-surface-hover text-text" : ""
               }`}
             >
@@ -53,7 +60,14 @@ export function PaneRail({
                   aria-hidden="true"
                 />
               )}
-              {item.iconNode}
+              <span className="flex h-4 w-4 items-center justify-center">
+                {item.iconNode}
+              </span>
+              {item.accountLabel && (
+                <span className="w-full truncate text-center text-[9px] leading-none">
+                  {item.accountLabel}
+                </span>
+              )}
             </button>
           </div>
         ))}

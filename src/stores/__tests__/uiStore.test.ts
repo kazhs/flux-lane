@@ -32,6 +32,7 @@ describe("uiStore", () => {
       lifecycle: "suspended",
       currentUrl: null,
       isLoading: true,
+      accountLabel: null,
     });
   });
 
@@ -39,12 +40,23 @@ describe("uiStore", () => {
     useUiStore.getState().setPaneLifecycle("pane-1", "active");
     useUiStore.getState().setPaneCurrentUrl("pane-1", "https://example.com");
     useUiStore.getState().setPaneLoading("pane-1", true);
+    useUiStore.getState().setPaneAccountLabel("pane-1", "@handle");
 
     expect(useUiStore.getState().paneRuntime["pane-1"]).toEqual({
       lifecycle: "active",
       currentUrl: "https://example.com",
       isLoading: true,
+      accountLabel: "@handle",
     });
+  });
+
+  it("setPaneAccountLabel can clear the label back to null", () => {
+    useUiStore.getState().setPaneAccountLabel("pane-1", "@handle");
+    useUiStore.getState().setPaneAccountLabel("pane-1", null);
+
+    expect(
+      useUiStore.getState().paneRuntime["pane-1"]?.accountLabel,
+    ).toBeNull();
   });
 
   it("removePaneRuntime deletes the entry", () => {

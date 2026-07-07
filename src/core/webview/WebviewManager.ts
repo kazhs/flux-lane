@@ -1,6 +1,8 @@
 import { useAppStore } from "../../stores/appStore";
 import { useUiStore } from "../../stores/uiStore";
 import { selectActivePanes } from "../../stores/selectors";
+import { PRESET_SERVICES } from "../services";
+import { matchServiceByUrl } from "../../lib/matchServiceByUrl";
 import type { OverlayMode, PaneId, Rect } from "../../types";
 import {
   createPaneWebview,
@@ -12,11 +14,13 @@ import {
   setPaneVisible,
 } from "../ipc/commands";
 import {
+  onPaneAccount,
   onPanePageLoad,
   onPanePointerDown,
   onPaneWheel as onPaneWheelEvent,
 } from "../ipc/events";
 import type {
+  PaneAccountEventPayload,
   PaneLoadEventPayload,
   PanePointerDownEventPayload,
   PaneWheelEventPayload,
@@ -58,6 +62,7 @@ class WebviewManager {
   private unlistenPageLoad: Unsubscribe | null = null;
   private unlistenPointerDown: Unsubscribe | null = null;
   private unlistenWheel: Unsubscribe | null = null;
+  private unlistenAccount: Unsubscribe | null = null;
   private readonly wheelCallbacks = new Set<PaneWheelCallback>();
   private started = false;
   private reconcileRunning = false;
@@ -94,6 +99,9 @@ class WebviewManager {
     this.unlistenWheel = await onPaneWheelEvent((payload) => {
       this.handlePaneWheelEvent(payload);
     });
+    this.unlistenAccount = await onPaneAccount((payload) => {
+      this.handlePaneAccount(payload);
+    });
   }
 
   stop(): void {
@@ -105,6 +113,8 @@ class WebviewManager {
     this.unlistenPointerDown = null;
     this.unlistenWheel?.();
     this.unlistenWheel = null;
+    this.unlistenAccount?.();
+    this.unlistenAccount = null;
     this.started = false;
   }
 
@@ -332,7 +342,21 @@ class WebviewManager {
       if (uiState.focusedPaneId === paneId) {
         void evalInPane(labelForPane(paneId), setFocusedScript(true));
       }
+
+      // ナビゲーションで注入済みスクリプトが消えるため、finished 時に毎回再 eval する
+      // （MUTE_SCRIPT と同じ理由）。currentUrl（ちょうど上で確定した値）優先で
+      // マッチさせる: 同一 pane がリダイレクトで別サービスに移った場合にも追随する。
+      const service = matchServiceByUrl(payload.url, PRESET_SERVICES);
+      if (service?.accountProbeScript) {
+        void evalInPane(labelForPane(paneId), service.accountProbeScript);
+      }
     }
+  }
+
+  private handlePaneAccount(payload: PaneAccountEventPayload): void {
+    const paneId = paneIdFromLabel(payload.label);
+    if (!paneId) return;
+    useUiStore.getState().setPaneAccountLabel(paneId, payload.handle);
   }
 }
 

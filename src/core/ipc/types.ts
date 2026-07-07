@@ -31,5 +31,18 @@ export interface PaneMenuActionEventPayload {
 /** `workspace://menu-action` イベントの payload。WorkspaceTab のネイティブコンテキストメニュー操作。 */
 export interface WorkspaceMenuActionEventPayload {
   workspaceId: string;
-  action: "delete";
+  action: "delete" | "rename";
+}
+
+/** `pane://account` イベントの payload。`accountProbeScript` が検知したアカウントラベル通知。 */
+export interface PaneAccountEventPayload {
+  label: string;
+  handle: string;
+}
+
+/** `app://goto` イベントの payload。ネイティブメニューの「移動」サブメニュー（⌘1〜9 / ⌃1〜9）。
+ * index は 1-based。 */
+export interface AppGotoEventPayload {
+  kind: "pane" | "workspace";
+  index: number;
 }

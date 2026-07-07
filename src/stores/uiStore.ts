@@ -5,6 +5,7 @@ const DEFAULT_PANE_RUNTIME_STATE: PaneRuntimeState = {
   lifecycle: "suspended",
   currentUrl: null,
   isLoading: false,
+  accountLabel: null,
 };
 
 export interface UiState {
@@ -25,6 +26,7 @@ export interface UiActions {
   ) => void;
   setPaneLoading: (paneId: PaneId, isLoading: boolean) => void;
   setPaneCurrentUrl: (paneId: PaneId, url: string | null) => void;
+  setPaneAccountLabel: (paneId: PaneId, label: string | null) => void;
   removePaneRuntime: (paneId: PaneId) => void;
   setFocusedPane: (paneId: PaneId | null) => void;
 }
@@ -63,6 +65,13 @@ export const useUiStore = create<UiStore>()((set) => ({
   setPaneCurrentUrl: (paneId, url) =>
     set((s) => ({
       paneRuntime: patchPaneRuntime(s.paneRuntime, paneId, { currentUrl: url }),
+    })),
+
+  setPaneAccountLabel: (paneId, label) =>
+    set((s) => ({
+      paneRuntime: patchPaneRuntime(s.paneRuntime, paneId, {
+        accountLabel: label,
+      }),
     })),
 
   removePaneRuntime: (paneId) =>
