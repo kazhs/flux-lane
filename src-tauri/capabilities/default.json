@@ -14,7 +14,9 @@
     "allow-eval-in-pane",
     "allow-focus-webview",
     "allow-popup-pane-menu",
+    "allow-popup-workspace-menu",
     "allow-load-persisted-state",
-    "allow-save-persisted-state"
+    "allow-save-persisted-state",
+    "allow-complete-shutdown"
   ]
 }

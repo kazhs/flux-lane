@@ -6,8 +6,8 @@ fn main() {
     // 「app コマンドは capability で明示許可されていないと呼べない」という制約が
     // local origin (main-ui) にも及ぶため、既存の全 command も一緒に列挙し、
     // capabilities/default.json 側で main-ui に allow-<command> を付与している。
-    tauri_build::try_build(
-        tauri_build::Attributes::new().app_manifest(tauri_build::AppManifest::new().commands(&[
+    tauri_build::try_build(tauri_build::Attributes::new().app_manifest(
+        tauri_build::AppManifest::new().commands(&[
             "create_pane_webview",
             "destroy_pane_webview",
             "set_pane_bounds",
@@ -16,11 +16,13 @@ fn main() {
             "eval_in_pane",
             "focus_webview",
             "popup_pane_menu",
+            "popup_workspace_menu",
             "load_persisted_state",
             "save_persisted_state",
+            "complete_shutdown",
             "notify_pane_pointer_down",
             "forward_pane_wheel",
-        ])),
-    )
+        ]),
+    ))
     .expect("failed to run tauri-build");
 }

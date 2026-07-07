@@ -53,7 +53,22 @@ function isAppSettings(value: unknown): value is AppSettings {
   return isPlainObject(value) && isFiniteNumber(value.defaultPaneWidthRatio);
 }
 
-/** v1 スキーマの構造検証。フィールド存在・型・参照整合性（activeWorkspaceId / workspaceOrder が実在する workspace を指すか）まで確認する。 */
+/**
+ * workspace.paneIds に panes へ実在しない参照（dangling）があれば取り除いた複製を返す。
+ * 参照不整合だけで設定全体をデフォルトに戻すのは過剰なため、reject でなく修復する。
+ */
+function sanitizeDanglingPaneIds(state: PersistedState): PersistedState {
+  const workspaces: Record<string, Workspace> = {};
+  let changed = false;
+  for (const [id, workspace] of Object.entries(state.workspaces)) {
+    const paneIds = workspace.paneIds.filter((paneId) => paneId in state.panes);
+    changed ||= paneIds.length !== workspace.paneIds.length;
+    workspaces[id] = { ...workspace, paneIds };
+  }
+  return changed ? { ...state, workspaces } : state;
+}
+
+/** v1 スキーマの構造検証。フィールド存在・型・参照整合性（activeWorkspaceId / workspaceOrder が実在する workspace を指すか）まで確認する。paneIds の dangling 参照は reject せず {@link sanitizeDanglingPaneIds} で修復する。 */
 function isPersistedStateV1(
   value: Record<string, unknown>,
 ): value is Record<string, unknown> & PersistedState {
@@ -89,7 +104,7 @@ export function parsePersistedState(json: string): PersistedState | null {
 
   switch (raw.schemaVersion) {
     case CURRENT_SCHEMA_VERSION:
-      return isPersistedStateV1(raw) ? raw : null;
+      return isPersistedStateV1(raw) ? sanitizeDanglingPaneIds(raw) : null;
     default:
       return null;
   }

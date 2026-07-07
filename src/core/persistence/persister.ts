@@ -5,8 +5,8 @@ import type { AppStore } from "../../stores/appStore";
 import { savePersistedState } from "../ipc/commands";
 
 export interface Persister {
-  /** 保留中の debounce をキャンセルし、即座に保存する。 */
-  flush: () => void;
+  /** 保留中の debounce をキャンセルし、即座に保存する。保存 IPC の完了を待てる。 */
+  flush: () => Promise<void>;
   /** subscribe を解除し、保留中の debounce もキャンセルする。以後は何もしない。 */
   stop: () => void;
 }
@@ -28,25 +28,25 @@ export function createPersister(store: SubscribableStore): Persister {
     }
   };
 
-  const persistNow = (): void => {
+  const persistNow = (): Promise<void> => {
     const state = store.getState();
     // hydrate 前は activeWorkspaceId が null。保存対象がまだ確定していない。
-    if (state.activeWorkspaceId === null) return;
-    void savePersistedState(JSON.stringify(selectPersistedState(state)));
+    if (state.activeWorkspaceId === null) return Promise.resolve();
+    return savePersistedState(JSON.stringify(selectPersistedState(state)));
   };
 
   const unsubscribe = store.subscribe(() => {
     cancelTimer();
     timer = setTimeout(() => {
       timer = null;
-      persistNow();
+      void persistNow();
     }, PERSIST_DEBOUNCE_MS);
   });
 
   return {
     flush: () => {
       cancelTimer();
-      persistNow();
+      return persistNow();
     },
     stop: () => {
       cancelTimer();

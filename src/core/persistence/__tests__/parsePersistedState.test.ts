@@ -24,6 +24,25 @@ describe("parsePersistedState", () => {
     expect(parsePersistedState(JSON.stringify(raw))).toBeNull();
   });
 
+  it("repairs dangling paneIds (panes に無い参照) instead of rejecting", () => {
+    const persisted = createDefaultPersistedState();
+    const workspaceId = persisted.workspaceOrder[0];
+    if (!workspaceId) throw new Error("expected a default workspace");
+    const workspace = persisted.workspaces[workspaceId];
+    if (!workspace) throw new Error("expected a default workspace entry");
+
+    const raw = {
+      ...persisted,
+      workspaces: {
+        ...persisted.workspaces,
+        [workspaceId]: { ...workspace, paneIds: ["ghost-pane"] },
+      },
+    };
+    const parsed = parsePersistedState(JSON.stringify(raw));
+    expect(parsed).not.toBeNull();
+    expect(parsed?.workspaces[workspaceId]?.paneIds).toEqual([]);
+  });
+
   it("returns null when a required field is missing", () => {
     const persisted = createDefaultPersistedState();
     const rest: Record<string, unknown> = { ...persisted };

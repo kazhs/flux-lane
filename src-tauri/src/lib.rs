@@ -24,12 +24,24 @@ pub fn run() {
                 LogicalSize::new(1280.0, 800.0),
             )?;
 
-            // レールのネイティブコンテキストメニュー（`popup_pane_menu`）のクリック結果を
-            // main-ui へ中継する。tray icon 等、他のメニュー由来の event id は
-            // `handle_menu_event` 側で prefix チェックして無視する。
+            // レールのネイティブコンテキストメニュー（`popup_pane_menu` / `popup_workspace_menu`）
+            // のクリック結果を main-ui へ中継する。tray icon 等、他のメニュー由来の event id は
+            // 各 `handle_menu_event` 側で prefix チェックして無視する。
             let app_handle = app.handle().clone();
             window.on_menu_event(move |_window, event| {
                 commands::pane_menu::handle_menu_event(&app_handle, event.id().as_ref());
+                commands::workspace_menu::handle_menu_event(&app_handle, event.id().as_ref());
+            });
+
+            // 二段階シャットダウン: close を一旦止めて main-ui に永続化 flush を依頼し、
+            // `complete_shutdown` で実際に終了する（commands/shutdown.rs）。
+            let close_handle = app.handle().clone();
+            window.on_window_event(move |event| {
+                if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                    if commands::shutdown::should_defer_close(&close_handle) {
+                        api.prevent_close();
+                    }
+                }
             });
 
             Ok(())
@@ -43,10 +55,12 @@ pub fn run() {
             commands::webview::eval_in_pane,
             commands::webview::focus_webview,
             commands::pane_menu::popup_pane_menu,
+            commands::workspace_menu::popup_workspace_menu,
             commands::pane_events::notify_pane_pointer_down,
             commands::pane_events::forward_pane_wheel,
             commands::storage::load_persisted_state,
             commands::storage::save_persisted_state,
+            commands::shutdown::complete_shutdown,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

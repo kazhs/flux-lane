@@ -121,7 +121,11 @@ pub fn set_pane_bounds(app: AppHandle, label: String, bounds: Bounds) -> Result<
 #[tauri::command]
 pub fn set_pane_visible(app: AppHandle, label: String, visible: bool) -> Result<(), String> {
     let webview = get_pane_webview(&app, &label)?;
-    let result = if visible { webview.show() } else { webview.hide() };
+    let result = if visible {
+        webview.show()
+    } else {
+        webview.hide()
+    };
     result.map_err(|e| e.to_string())
 }
 

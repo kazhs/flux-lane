@@ -60,6 +60,8 @@ class WebviewManager {
   private unlistenWheel: Unsubscribe | null = null;
   private readonly wheelCallbacks = new Set<PaneWheelCallback>();
   private started = false;
+  private reconcileRunning = false;
+  private reconcileQueued = false;
 
   async init(): Promise<void> {
     if (this.started) return;
@@ -177,7 +179,30 @@ class WebviewManager {
     void setPaneVisible(labelForPane(paneId), visible);
   }
 
+  /**
+   * reconcile の直列化ゲート。store 更新のたびに fire-and-forget で呼ばれるため、
+   * 素の doReconcile を並行実行すると両方が同じ古い createdSessionIds から diff を
+   * 計算し、同一ペインへの create 二重発行 →「already exists」で負けた側が
+   * failedPaneIds に誤登録 → 次の reconcile が生きている webview を destroy する
+   * （code review High #2）。実行中に要求が来たら 1 回だけ追加実行する。
+   */
   private async reconcile(): Promise<void> {
+    if (this.reconcileRunning) {
+      this.reconcileQueued = true;
+      return;
+    }
+    this.reconcileRunning = true;
+    try {
+      do {
+        this.reconcileQueued = false;
+        await this.doReconcile();
+      } while (this.reconcileQueued);
+    } finally {
+      this.reconcileRunning = false;
+    }
+  }
+
+  private async doReconcile(): Promise<void> {
     // 削除済みペインの failed フラグはここで払う（無限に Set が育まないように）。
     const allPaneIds = new Set(Object.keys(useAppStore.getState().panes));
     for (const paneId of this.failedPaneIds) {
@@ -270,6 +295,11 @@ class WebviewManager {
   private handlePanePointerDown(payload: PanePointerDownEventPayload): void {
     const paneId = paneIdFromLabel(payload.label);
     if (!paneId) return;
+    // 真正性チェック: WebView が非表示（overlay 中 / layout hidden）のペインには
+    // 実クリックが物理的に届かない。その状態で届いた通知はページ JS の直接 invoke
+    // （フォーカス奪取の試み）なので無視する（code review High #1 の緩和策の一部）。
+    if (useUiStore.getState().overlay !== "none") return;
+    if (this.layoutHidden.has(paneId)) return;
     useUiStore.getState().setFocusedPane(paneId);
   }
 
