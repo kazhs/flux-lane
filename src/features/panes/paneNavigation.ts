@@ -3,9 +3,10 @@ import { useUiStore } from "../../stores/uiStore";
 import { selectActivePaneIds } from "../../stores/selectors";
 import type { PaneId } from "../../types";
 
-/** レール起点のジャンプ: strip 側の scroll イベントを LayoutController が拾って
- * WebView bounds を追随させる既存機構に乗せる（新規の同期経路は作らない）。 */
-function scrollPaneIntoView(paneId: PaneId): void {
+/** レール起点のジャンプ・フォーカス変化に伴う自動スクロール: strip 側の scroll イベントを
+ * LayoutController が拾って WebView bounds を追随させる既存機構に乗せる
+ * （新規の同期経路は作らない）。`PaneStripContainer` の focusedPaneId 監視からも使う。 */
+export function scrollPaneIntoView(paneId: PaneId): void {
   const el = document.querySelector(`[data-pane-id="${paneId}"]`);
   el?.scrollIntoView({
     behavior: "smooth",

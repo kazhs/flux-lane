@@ -10,7 +10,7 @@ import { PanePlaceholder } from "../../components/pane/PanePlaceholder";
 import { PaneResizeHandle } from "../../components/pane/PaneResizeHandle";
 import { MIN_PANE_WIDTH } from "../../lib/constants";
 import { useResizePane } from "./useResizePane";
-import { confirmDialog } from "../../core/ipc/dialog";
+import { closePaneWithConfirm } from "./paneClose";
 import type { PaneId } from "../../types";
 
 export type PaneItemProps = {
@@ -20,12 +20,10 @@ export type PaneItemProps = {
 export function PaneItem({ paneId }: PaneItemProps) {
   const pane = useAppStore((s) => s.panes[paneId]);
   const updatePane = useAppStore((s) => s.updatePane);
-  const removePane = useAppStore((s) => s.removePane);
   const setPaneWidth = useAppStore((s) => s.setPaneWidth);
   const runtime = useUiStore((s) => s.paneRuntime[paneId]);
   const overlay = useUiStore((s) => s.overlay);
   const setOverlay = useUiStore((s) => s.setOverlay);
-  const removePaneRuntime = useUiStore((s) => s.removePaneRuntime);
   const focused = useUiStore((s) => s.focusedPaneId === paneId);
   const setFocusedPane = useUiStore((s) => s.setFocusedPane);
 
@@ -81,13 +79,8 @@ export function PaneItem({ paneId }: PaneItemProps) {
     void webviewManager.setMuted(paneId, muted);
   };
 
-  const handleClose = async () => {
-    const ok = await confirmDialog(
-      `「${pane.title}」を閉じる？セッションも削除される`,
-    );
-    if (!ok) return;
-    removePane(paneId);
-    removePaneRuntime(paneId);
+  const handleClose = () => {
+    void closePaneWithConfirm(paneId, pane.title);
   };
 
   return (

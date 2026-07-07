@@ -22,6 +22,7 @@ import { PaneStrip } from "../../components/pane/PaneStrip";
 import { AddPaneTile } from "../../components/pane/AddPaneTile";
 import { PaneItem } from "./PaneItem";
 import { resolveMoveIndex } from "./dragOrder";
+import { scrollPaneIntoView } from "./paneNavigation";
 import type { PaneId } from "../../types";
 
 export function PaneStripContainer() {
@@ -29,6 +30,7 @@ export function PaneStripContainer() {
   const movePane = useAppStore((s) => s.movePane);
   const setView = useUiStore((s) => s.setView);
   const setOverlay = useUiStore((s) => s.setOverlay);
+  const focusedPaneId = useUiStore((s) => s.focusedPaneId);
 
   // ドラッグ開始はヘッダーのグリップ（dragHandleProps）のみに listeners が付くため、
   // 誤反応を避けるための distance constraint は最小限で十分。
@@ -51,6 +53,14 @@ export function PaneStripContainer() {
     }
     prevPaneCountRef.current = paneIds.length;
   }, [paneIds.length]);
+
+  // フォーカス変化（クリック / レール / ⌘n / ⌘R・⌘W いずれの経路でも focusedPaneId が
+  // 更新される）に追随して、枠外にあれば全体が収まるようスクロールする。レール側
+  // `selectPane` の既存スクロールと重複しても冪等（同じ要素への scrollIntoView）で害はない。
+  useEffect(() => {
+    if (!focusedPaneId) return;
+    scrollPaneIntoView(focusedPaneId);
+  }, [focusedPaneId]);
 
   // 未フォーカスペイン上の wheel は `pane://wheel` で転送される（`WebviewManager`）。
   // 横ジェスチャ（deltaX）のみ、慣性補間（smoothScroll）でストリップスクロールに反映する。

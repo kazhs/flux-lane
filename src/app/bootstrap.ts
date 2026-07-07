@@ -1,11 +1,17 @@
 import { useAppStore } from "../stores/appStore";
+import { useUiStore } from "../stores/uiStore";
 import { webviewManager } from "../core/webview/WebviewManager";
 import { layoutController } from "../core/webview/LayoutController";
 import { createPersister, type Persister } from "../core/persistence/persister";
 import { loadOrDefault } from "../core/persistence/loadOrDefault";
 import { completeShutdown } from "../core/ipc/commands";
-import { onAppCloseRequested, onAppGoto } from "../core/ipc/events";
+import {
+  onAppCloseRequested,
+  onAppGoto,
+  onAppPaneAction,
+} from "../core/ipc/events";
 import { selectPaneByIndex } from "../features/panes/paneNavigation";
+import { closePaneWithConfirm } from "../features/panes/paneClose";
 
 let persister: Persister | null = null;
 
@@ -61,6 +67,21 @@ export async function bootstrap(): Promise<void> {
       useAppStore.getState().workspaceOrder[payload.index - 1];
     if (!workspaceId) return;
     useAppStore.getState().setActiveWorkspace(workspaceId);
+  });
+
+  // ネイティブメニューの「ペイン」サブメニュー（⌘R = 再読み込み, ⌘W = 閉じる）。
+  // フォーカス中ペインが無い（null）場合は no-op。closePaneWithConfirm は確認発火前に
+  // paneId/title を確定させるため、確認待ち中にフォーカスが変わっても対象はずれない。
+  void onAppPaneAction((payload) => {
+    const paneId = useUiStore.getState().focusedPaneId;
+    if (!paneId) return;
+    if (payload.action === "reload") {
+      void webviewManager.reload(paneId);
+      return;
+    }
+    const pane = useAppStore.getState().panes[paneId];
+    const title = pane?.title ?? paneId;
+    void closePaneWithConfirm(paneId, title);
   });
 
   // 二段階シャットダウンが主経路。beforeunload は reload 等の取りこぼし向け best-effort。

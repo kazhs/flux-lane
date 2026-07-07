@@ -5,6 +5,7 @@ import { listen } from "@tauri-apps/api/event";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import type {
   AppGotoEventPayload,
+  AppPaneActionEventPayload,
   PaneAccountEventPayload,
   PaneLoadEventPayload,
   PaneMenuActionEventPayload,
@@ -69,6 +70,15 @@ export function onAppGoto(
   callback: (payload: AppGotoEventPayload) => void,
 ): Promise<UnlistenFn> {
   return listen<AppGotoEventPayload>("app://goto", (event) => {
+    callback(event.payload);
+  });
+}
+
+/** ネイティブメニューの「ペイン」サブメニュー（⌘R / ⌘W）操作（app://pane-action）。 */
+export function onAppPaneAction(
+  callback: (payload: AppPaneActionEventPayload) => void,
+): Promise<UnlistenFn> {
+  return listen<AppPaneActionEventPayload>("app://pane-action", (event) => {
     callback(event.payload);
   });
 }

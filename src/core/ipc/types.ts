@@ -46,3 +46,9 @@ export interface AppGotoEventPayload {
   kind: "pane" | "workspace";
   index: number;
 }
+
+/** `app://pane-action` イベントの payload。ネイティブメニューの「ペイン」サブメニュー
+ * （⌘R = 再読み込み, ⌘W = 閉じる）。フォーカス中ペインへの適用は TS 側の責務。 */
+export interface AppPaneActionEventPayload {
+  action: "reload" | "close";
+}
