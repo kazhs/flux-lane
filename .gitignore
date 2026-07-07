@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Claude Code
+.claude/settings.local.json
+CLAUDE.local.md
+.claude/tmp/
+.claude/worktrees/
+.claude/scheduled_tasks.lock
+.worktrees/
