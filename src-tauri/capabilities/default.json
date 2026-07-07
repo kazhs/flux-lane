@@ -12,6 +12,7 @@
     "allow-reload-pane",
     "allow-eval-in-pane",
     "allow-focus-webview",
+    "allow-popup-pane-menu",
     "allow-load-persisted-state",
     "allow-save-persisted-state"
   ]

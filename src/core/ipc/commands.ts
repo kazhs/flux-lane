@@ -45,6 +45,11 @@ export function focusWebview(label: string): Promise<void> {
   return invoke("focus_webview", { label });
 }
 
+/** レールアイテムのネイティブコンテキストメニュー（カーソル位置）を表示する。 */
+export function popupPaneMenu(paneLabel: string): Promise<void> {
+  return invoke("popup_pane_menu", { paneLabel });
+}
+
 export function loadPersistedState(): Promise<string | null> {
   return invoke("load_persisted_state");
 }

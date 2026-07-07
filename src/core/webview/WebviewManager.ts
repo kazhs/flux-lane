@@ -51,6 +51,9 @@ class WebviewManager {
   private readonly createdSessionIds = new Map<PaneId, string>();
   /** create 失敗したペイン。次の reconcile で再試行しない（手動 reload で解除）。 */
   private readonly failedPaneIds = new Set<PaneId>();
+  /** LayoutController が「常設レールの左境界をまたいだ」と判定した pane。
+   * 表示可否は overlay と両方の AND で決まる（`applyVisibility`）。 */
+  private readonly layoutHidden = new Set<PaneId>();
   private readonly unsubscribers: Unsubscribe[] = [];
   private unlistenPageLoad: Unsubscribe | null = null;
   private unlistenPointerDown: Unsubscribe | null = null;
@@ -150,6 +153,30 @@ class WebviewManager {
     await evalInPane(labelForPane(paneId), muted ? MUTE_SCRIPT : UNMUTE_SCRIPT);
   }
 
+  /** LayoutController からの hidden 変化通知を受け、layoutHidden 集合を更新して
+   * visibility を再計算する。変化した pane だけを runtime lifecycle にも反映する。 */
+  setLayoutHidden(changes: ReadonlyMap<PaneId, boolean>): void {
+    const overlay = useUiStore.getState().overlay;
+    for (const [paneId, hidden] of changes) {
+      if (hidden) {
+        this.layoutHidden.add(paneId);
+      } else {
+        this.layoutHidden.delete(paneId);
+      }
+      this.applyVisibility(paneId, overlay);
+      useUiStore
+        .getState()
+        .setPaneLifecycle(paneId, hidden ? "hidden" : "active");
+    }
+  }
+
+  /** overlay と layoutHidden の AND で表示可否を決める共通ヘルパ。未生成の pane は無視する。 */
+  private applyVisibility(paneId: PaneId, overlay: OverlayMode): void {
+    if (!this.createdSessionIds.has(paneId)) return;
+    const visible = overlay === "none" && !this.layoutHidden.has(paneId);
+    void setPaneVisible(labelForPane(paneId), visible);
+  }
+
   private async reconcile(): Promise<void> {
     // 削除済みペインの failed フラグはここで払う（無限に Set が育まないように）。
     const allPaneIds = new Set(Object.keys(useAppStore.getState().panes));
@@ -173,6 +200,10 @@ class WebviewManager {
 
     for (const paneId of destroys) {
       this.createdSessionIds.delete(paneId);
+      // LayoutController は placeholder unregister 時に自分の hidden 集合を払うだけなので、
+      // ここで払わないと destroy 済み paneId が layoutHidden に残り続ける（表示には影響しないが
+      // メモリリークになる）。
+      this.layoutHidden.delete(paneId);
       if (useUiStore.getState().focusedPaneId === paneId) {
         useUiStore.getState().setFocusedPane(null);
       }
@@ -211,14 +242,15 @@ class WebviewManager {
   }
 
   private handleOverlayChange(overlay: OverlayMode): void {
-    const visible = overlay === "none";
     for (const paneId of this.createdSessionIds.keys()) {
-      void setPaneVisible(labelForPane(paneId), visible);
+      this.applyVisibility(paneId, overlay);
     }
   }
 
   /** フォーカス移動: 旧ペインに false、新ペインに true を eval し、null になったら
-   * キーボードフォーカスを "main-ui" に戻す（ペインフォーカスモデル）。 */
+   * キーボードフォーカスを "main-ui" に戻す（ペインフォーカスモデル）。新ペインには
+   * キーボードフォーカスも移す（レール起点のフォーカスでも移るように。クリック起点でも
+   * 冪等なので分岐しない）。 */
   private handleFocusChange(
     previous: PaneId | null,
     next: PaneId | null,
@@ -228,6 +260,7 @@ class WebviewManager {
     }
     if (next && this.createdSessionIds.has(next)) {
       void evalInPane(labelForPane(next), setFocusedScript(true));
+      void focusWebview(labelForPane(next));
     }
     if (next === null) {
       void focusWebview("main-ui");

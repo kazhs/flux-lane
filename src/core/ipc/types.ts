@@ -21,3 +21,9 @@ export interface PaneWheelEventPayload {
   deltaX: number;
   deltaY: number;
 }
+
+/** `pane://menu-action` イベントの payload。レールのネイティブコンテキストメニュー操作。 */
+export interface PaneMenuActionEventPayload {
+  label: string;
+  action: "delete";
+}

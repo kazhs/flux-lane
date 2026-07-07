@@ -21,6 +21,14 @@ pub fn run() {
                 LogicalSize::new(1280.0, 800.0),
             )?;
 
+            // レールのネイティブコンテキストメニュー（`popup_pane_menu`）のクリック結果を
+            // main-ui へ中継する。tray icon 等、他のメニュー由来の event id は
+            // `handle_menu_event` 側で prefix チェックして無視する。
+            let app_handle = app.handle().clone();
+            window.on_menu_event(move |_window, event| {
+                commands::pane_menu::handle_menu_event(&app_handle, event.id().as_ref());
+            });
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -31,6 +39,7 @@ pub fn run() {
             commands::webview::reload_pane,
             commands::webview::eval_in_pane,
             commands::webview::focus_webview,
+            commands::pane_menu::popup_pane_menu,
             commands::pane_events::notify_pane_pointer_down,
             commands::pane_events::forward_pane_wheel,
             commands::storage::load_persisted_state,

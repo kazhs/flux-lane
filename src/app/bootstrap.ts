@@ -17,8 +17,9 @@ export async function bootstrap(): Promise<void> {
 
   await webviewManager.init();
 
-  layoutController.start((rects) => {
+  layoutController.start((rects, hiddenChanges) => {
     void webviewManager.setBounds(rects);
+    webviewManager.setLayoutHidden(hiddenChanges);
   });
 
   persister = createPersister(useAppStore);

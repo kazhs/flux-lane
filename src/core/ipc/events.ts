@@ -5,6 +5,7 @@ import { listen } from "@tauri-apps/api/event";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import type {
   PaneLoadEventPayload,
+  PaneMenuActionEventPayload,
   PanePointerDownEventPayload,
   PaneWheelEventPayload,
 } from "./types";
@@ -29,6 +30,14 @@ export function onPaneWheel(
   callback: (payload: PaneWheelEventPayload) => void,
 ): Promise<UnlistenFn> {
   return listen<PaneWheelEventPayload>("pane://wheel", (event) => {
+    callback(event.payload);
+  });
+}
+
+export function onPaneMenuAction(
+  callback: (payload: PaneMenuActionEventPayload) => void,
+): Promise<UnlistenFn> {
+  return listen<PaneMenuActionEventPayload>("pane://menu-action", (event) => {
     callback(event.payload);
   });
 }

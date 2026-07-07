@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useUiStore } from "../stores/uiStore";
 import { WorkspaceBarContainer } from "../features/workspaces/WorkspaceBarContainer";
 import { PaneStripContainer } from "../features/panes/PaneStripContainer";
+import { PaneRailContainer } from "../features/panes/PaneRailContainer";
 import { AddPaneView } from "../features/panes/AddPaneView";
 import { SettingsView } from "../features/settings/SettingsView";
 import "./App.css";
@@ -27,8 +28,11 @@ function App() {
       onPointerDown={() => setFocusedPane(null)}
     >
       <WorkspaceBarContainer />
-      <div className="flex-1 overflow-hidden">
-        <PaneStripContainer />
+      <div className="flex flex-1 overflow-hidden">
+        <PaneRailContainer />
+        <div className="flex-1 overflow-hidden">
+          <PaneStripContainer />
+        </div>
       </div>
     </div>
   );

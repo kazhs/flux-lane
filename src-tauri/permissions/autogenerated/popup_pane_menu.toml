@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-popup-pane-menu"
+description = "Enables the popup_pane_menu command without any pre-configured scope."
+commands.allow = ["popup_pane_menu"]
+
+[[permission]]
+identifier = "deny-popup-pane-menu"
+description = "Denies the popup_pane_menu command without any pre-configured scope."
+commands.deny = ["popup_pane_menu"]

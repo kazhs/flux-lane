@@ -81,6 +81,8 @@ export function PaneItem({ paneId }: PaneItemProps) {
   };
 
   const handleClose = () => {
+    if (!window.confirm(`「${pane.title}」を閉じる？セッションも削除される`))
+      return;
     removePane(paneId);
     removePaneRuntime(paneId);
   };
@@ -88,6 +90,7 @@ export function PaneItem({ paneId }: PaneItemProps) {
   return (
     <div
       ref={setNodeRef}
+      data-pane-id={paneId}
       className="flex h-full shrink-0"
       style={{
         transform: CSS.Transform.toString(transform),
@@ -112,7 +115,7 @@ export function PaneItem({ paneId }: PaneItemProps) {
           />
         }
         bodyRef={handleBodyRef}
-        showCard={overlay !== "none"}
+        showCard={overlay !== "none" || runtime?.lifecycle === "hidden"}
         cardTitle={pane.title}
       />
       <PaneResizeHandle onPointerDown={handleResizePointerDown} />

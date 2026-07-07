@@ -101,7 +101,7 @@ Rust → TS イベント: `pane://page-load`（payload: `{ label, url, event: "s
 | `suspended` | 実体なし（セッションは永続化済み） | 非アクティブ workspace / 明示的サスペンド |
 
 - Workspace 切替 = 旧 workspace の全ペインを `suspended`、新 workspace を実体化。WebView 数は常に「アクティブ workspace のペイン数」に抑えられる（`WebviewManager.reconcile`）。
-- **実装状況（既知の制限）**: `active`/`suspended` は上記の通り実装済み。`hidden`（ビューポート外での非表示）と `SuspendPolicy` の Strategy 化は `PaneLifecycle` 型に列としては残しているが、駆動するロジックは未実装（`setPaneLifecycle` の呼び出し元が無い）。現状は全ペイン常に `active` 表示で、スクロールアウトしても hide しない。将来必要になったら `LayoutController` の rect 計測結果（画面外判定）から駆動する想定。
+- **実装状況**: `active`/`suspended` に加え、`hidden` も `LayoutController` の可視判定（`paneVisibility.ts`）から駆動済み。左境界（ペインレール）をまたいだペインと右に完全アウトしたペインは WebView を hide し、placeholder カード表示に落ちる（レールはネイティブ WebView より奥の DOM のため、hide しないと覆われる）。右境界の部分はみ出しは window が自然にクリップするので visible のまま。`SuspendPolicy` の Strategy 化（時間ベースの自動 suspend 等）は未実装のまま将来課題。
 
 ### 1.8 状態管理・永続化
 

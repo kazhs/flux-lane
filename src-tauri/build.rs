@@ -15,6 +15,7 @@ fn main() {
             "reload_pane",
             "eval_in_pane",
             "focus_webview",
+            "popup_pane_menu",
             "load_persisted_state",
             "save_persisted_state",
             "notify_pane_pointer_down",
