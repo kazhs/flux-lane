@@ -1,18 +1,29 @@
+import type { MouseEvent } from "react";
+
 export type WorkspaceTabProps = {
   name: string;
   active: boolean;
   onSelect: () => void;
+  onContextMenu: (event: MouseEvent) => void;
 };
 
 /**
  * active 表示は下線ではなく背景塗り。下線だとペインのフォーカス表示
  * （ヘッダー上端の accent ライン）と隣接して見分けが付かないため。
+ * 削除操作はネイティブコンテキストメニュー経由（`onContextMenu`）のみ
+ * （`PaneRail` のレールアイテムと同じ方針）。
  */
-export function WorkspaceTab({ name, active, onSelect }: WorkspaceTabProps) {
+export function WorkspaceTab({
+  name,
+  active,
+  onSelect,
+  onContextMenu,
+}: WorkspaceTabProps) {
   return (
     <button
       type="button"
       onClick={onSelect}
+      onContextMenu={onContextMenu}
       className={`my-1 rounded px-3 py-0.5 text-sm transition-colors ${
         active
           ? "bg-surface-hover text-text"

@@ -48,6 +48,7 @@ export function PaneRailContainer() {
   const removePane = useAppStore((s) => s.removePane);
   const removePaneRuntime = useUiStore((s) => s.removePaneRuntime);
   const setFocusedPane = useUiStore((s) => s.setFocusedPane);
+  const setView = useUiStore((s) => s.setView);
 
   // レールのネイティブコンテキストメニュー（Rust 側 `popup_pane_menu`）からの削除操作を
   // 受け取る。クリックによるジャンプ + フォーカスは既存の handleSelect のまま変更しない。
@@ -108,6 +109,7 @@ export function PaneRailContainer() {
       items={items}
       onSelect={handleSelect}
       onContextMenu={handleContextMenu}
+      onAddPane={() => setView("add-pane")}
     />
   );
 }

@@ -1,3 +1,4 @@
+import type { MouseEvent } from "react";
 import { IconButton } from "../ui/IconButton";
 import { PlusIcon, SettingsIcon } from "../ui/icons";
 import { WorkspaceTab } from "./WorkspaceTab";
@@ -9,6 +10,7 @@ export type WorkspaceBarProps = {
   onAddWorkspace: () => void;
   onAddPane: () => void;
   onOpenSettings: () => void;
+  onContextMenu: (id: string, event: MouseEvent) => void;
 };
 
 export function WorkspaceBar({
@@ -18,6 +20,7 @@ export function WorkspaceBar({
   onAddWorkspace,
   onAddPane,
   onOpenSettings,
+  onContextMenu,
 }: WorkspaceBarProps) {
   return (
     <div className="flex h-9 items-center border-b border-border bg-surface pr-2">
@@ -28,6 +31,7 @@ export function WorkspaceBar({
             name={workspace.name}
             active={workspace.id === activeId}
             onSelect={() => onSelect(workspace.id)}
+            onContextMenu={(event) => onContextMenu(workspace.id, event)}
           />
         ))}
         <IconButton

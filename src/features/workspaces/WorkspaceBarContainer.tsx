@@ -1,6 +1,10 @@
+import { useEffect, type MouseEvent as ReactMouseEvent } from "react";
 import { useAppStore } from "../../stores/appStore";
 import { useUiStore } from "../../stores/uiStore";
 import { WorkspaceBar } from "../../components/workspace/WorkspaceBar";
+import { popupWorkspaceMenu } from "../../core/ipc/commands";
+import { onWorkspaceMenuAction } from "../../core/ipc/events";
+import { confirmDialog } from "../../core/ipc/dialog";
 import type { Workspace } from "../../types";
 
 export function WorkspaceBarContainer() {
@@ -8,13 +12,50 @@ export function WorkspaceBarContainer() {
   const workspaceOrder = useAppStore((s) => s.workspaceOrder);
   const activeId = useAppStore((s) => s.activeWorkspaceId);
   const addWorkspace = useAppStore((s) => s.addWorkspace);
+  const removeWorkspace = useAppStore((s) => s.removeWorkspace);
   const setActiveWorkspace = useAppStore((s) => s.setActiveWorkspace);
   const setView = useUiStore((s) => s.setView);
+
+  // WorkspaceTab のネイティブコンテキストメニュー（Rust 側 `popup_workspace_menu`）からの
+  // 削除操作を受け取る。`PaneRailContainer` と同じ cancelled ガード付きパターン: listen() は
+  // 非同期に解決するため、cleanup が unlisten 取得前に走ると listener が永久に残る
+  // （StrictMode の二重マウント・ビュー切替の再マウントで 1 個ずつ増え、削除確認モーダルが
+  // 多重表示される実バグになった）。cancelled ガードで解決直後に破棄する。
+  useEffect(() => {
+    let cancelled = false;
+    let unlisten: (() => void) | undefined;
+    void onWorkspaceMenuAction(async (payload) => {
+      if (payload.action !== "delete") return;
+      const workspace = useAppStore.getState().workspaces[payload.workspaceId];
+      const name = workspace?.name ?? payload.workspaceId;
+      const ok = await confirmDialog(
+        `ワークスペース「${name}」を削除する？配下のペインとセッションも削除される`,
+      );
+      if (!ok) return;
+      removeWorkspace(payload.workspaceId);
+    }).then((fn) => {
+      if (cancelled) {
+        fn();
+        return;
+      }
+      unlisten = fn;
+    });
+    return () => {
+      cancelled = true;
+      unlisten?.();
+      unlisten = undefined;
+    };
+  }, [removeWorkspace]);
 
   const workspaceList = workspaceOrder
     .map((id) => workspaces[id])
     .filter((workspace): workspace is Workspace => workspace !== undefined)
     .map((workspace) => ({ id: workspace.id, name: workspace.name }));
+
+  const handleContextMenu = (id: string, event: ReactMouseEvent) => {
+    event.preventDefault();
+    void popupWorkspaceMenu(id, workspaceOrder.length <= 1);
+  };
 
   return (
     <WorkspaceBar
@@ -26,6 +67,7 @@ export function WorkspaceBarContainer() {
       }
       onAddPane={() => setView("add-pane")}
       onOpenSettings={() => setView("settings")}
+      onContextMenu={handleContextMenu}
     />
   );
 }

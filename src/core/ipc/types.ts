@@ -27,3 +27,9 @@ export interface PaneMenuActionEventPayload {
   label: string;
   action: "delete";
 }
+
+/** `workspace://menu-action` イベントの payload。WorkspaceTab のネイティブコンテキストメニュー操作。 */
+export interface WorkspaceMenuActionEventPayload {
+  workspaceId: string;
+  action: "delete";
+}

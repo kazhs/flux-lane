@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-popup-workspace-menu"
+description = "Enables the popup_workspace_menu command without any pre-configured scope."
+commands.allow = ["popup_workspace_menu"]
+
+[[permission]]
+identifier = "deny-popup-workspace-menu"
+description = "Denies the popup_workspace_menu command without any pre-configured scope."
+commands.deny = ["popup_workspace_menu"]

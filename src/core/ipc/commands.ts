@@ -50,10 +50,23 @@ export function popupPaneMenu(paneLabel: string): Promise<void> {
   return invoke("popup_pane_menu", { paneLabel });
 }
 
+/** WorkspaceTab のネイティブコンテキストメニュー（カーソル位置）を表示する。 */
+export function popupWorkspaceMenu(
+  workspaceId: string,
+  isLast: boolean,
+): Promise<void> {
+  return invoke("popup_workspace_menu", { workspaceId, isLast });
+}
+
 export function loadPersistedState(): Promise<string | null> {
   return invoke("load_persisted_state");
 }
 
 export function savePersistedState(json: string): Promise<void> {
   return invoke("save_persisted_state", { json });
+}
+
+/** 二段階シャットダウン: 永続化 flush 完了後にプロセスを終了させる。 */
+export function completeShutdown(): Promise<void> {
+  return invoke("complete_shutdown");
 }

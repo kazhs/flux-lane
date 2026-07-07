@@ -8,6 +8,7 @@ import type {
   PaneMenuActionEventPayload,
   PanePointerDownEventPayload,
   PaneWheelEventPayload,
+  WorkspaceMenuActionEventPayload,
 } from "./types";
 
 export function onPanePageLoad(
@@ -39,5 +40,23 @@ export function onPaneMenuAction(
 ): Promise<UnlistenFn> {
   return listen<PaneMenuActionEventPayload>("pane://menu-action", (event) => {
     callback(event.payload);
+  });
+}
+
+export function onWorkspaceMenuAction(
+  callback: (payload: WorkspaceMenuActionEventPayload) => void,
+): Promise<UnlistenFn> {
+  return listen<WorkspaceMenuActionEventPayload>(
+    "workspace://menu-action",
+    (event) => {
+      callback(event.payload);
+    },
+  );
+}
+
+/** CloseRequested を Rust 側が一旦止めたときの flush 依頼（app://close-requested）。 */
+export function onAppCloseRequested(callback: () => void): Promise<UnlistenFn> {
+  return listen("app://close-requested", () => {
+    callback();
   });
 }
