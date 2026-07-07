@@ -165,6 +165,57 @@ describe("appStore", () => {
     ]);
   });
 
+  it("movePaneToWorkspace moves the pane out of its source workspace and into the target's paneIds", () => {
+    hydrateWithDefault();
+    const wsA = requireActiveWorkspaceId();
+    const wsB = useAppStore.getState().addWorkspace("B");
+    const paneId = useAppStore
+      .getState()
+      .addPane(wsA, { title: "X", url: "https://x.example", width: 400 });
+
+    useAppStore.getState().movePaneToWorkspace(paneId, wsB);
+
+    const state = useAppStore.getState();
+    expect(state.workspaces[wsA]?.paneIds).toEqual([]);
+    expect(state.workspaces[wsB]?.paneIds).toEqual([paneId]);
+  });
+
+  it("movePaneToWorkspace is a no-op when the target is the pane's current workspace", () => {
+    hydrateWithDefault();
+    const wsA = requireActiveWorkspaceId();
+    const paneId = useAppStore
+      .getState()
+      .addPane(wsA, { title: "X", url: "https://x.example", width: 400 });
+
+    useAppStore.getState().movePaneToWorkspace(paneId, wsA);
+
+    expect(useAppStore.getState().workspaces[wsA]?.paneIds).toEqual([paneId]);
+  });
+
+  it("movePaneToWorkspace is a no-op when the target workspace does not exist", () => {
+    hydrateWithDefault();
+    const wsA = requireActiveWorkspaceId();
+    const paneId = useAppStore
+      .getState()
+      .addPane(wsA, { title: "X", url: "https://x.example", width: 400 });
+
+    useAppStore.getState().movePaneToWorkspace(paneId, "nonexistent-ws");
+
+    expect(useAppStore.getState().workspaces[wsA]?.paneIds).toEqual([paneId]);
+  });
+
+  it("movePaneToWorkspace is a no-op when the pane does not exist", () => {
+    hydrateWithDefault();
+    const wsA = requireActiveWorkspaceId();
+    const wsB = useAppStore.getState().addWorkspace("B");
+
+    useAppStore.getState().movePaneToWorkspace("nonexistent-pane", wsB);
+
+    const state = useAppStore.getState();
+    expect(state.workspaces[wsA]?.paneIds).toEqual([]);
+    expect(state.workspaces[wsB]?.paneIds).toEqual([]);
+  });
+
   it("hydrate + addWorkspace/addPane keeps selectPersistedState internally consistent", () => {
     const persisted = hydrateWithDefault();
     const workspaceId = useAppStore.getState().addWorkspace("New WS");

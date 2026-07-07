@@ -22,10 +22,20 @@ export interface PaneWheelEventPayload {
   deltaY: number;
 }
 
-/** `pane://menu-action` イベントの payload。レールのネイティブコンテキストメニュー操作。 */
+/** `pane://menu-action` イベントの payload。レールのネイティブコンテキストメニュー操作。
+ * `workspaceId` は action が `"move"` のときのみ載る。 */
 export interface PaneMenuActionEventPayload {
   label: string;
-  action: "delete";
+  action: "delete" | "move";
+  workspaceId?: string;
+}
+
+/** `popup_pane_menu` の「ワークスペースへ移動」サブメニュー項目。TS 側が現在の全 workspace
+ * をこの形に詰めて渡す。 */
+export interface PaneMenuWorkspaceEntry {
+  id: string;
+  name: string;
+  isCurrent: boolean;
 }
 
 /** `workspace://menu-action` イベントの payload。WorkspaceTab のネイティブコンテキストメニュー操作。 */

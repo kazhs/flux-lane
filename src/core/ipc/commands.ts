@@ -3,7 +3,7 @@
  */
 import { invoke } from "@tauri-apps/api/core";
 import type { SessionId } from "../../types";
-import type { Bounds } from "./types";
+import type { Bounds, PaneMenuWorkspaceEntry } from "./types";
 
 export interface CreatePaneWebviewParams {
   label: string;
@@ -52,9 +52,13 @@ export function focusWebview(label: string): Promise<void> {
   return invoke("focus_webview", { label });
 }
 
-/** レールアイテムのネイティブコンテキストメニュー（カーソル位置）を表示する。 */
-export function popupPaneMenu(paneLabel: string): Promise<void> {
-  return invoke("popup_pane_menu", { paneLabel });
+/** レールアイテムのネイティブコンテキストメニュー（カーソル位置）を表示する。
+ * `workspaces` は「ワークスペースへ移動」サブメニューの選択肢（現在の全 workspace）。 */
+export function popupPaneMenu(
+  paneLabel: string,
+  workspaces: PaneMenuWorkspaceEntry[],
+): Promise<void> {
+  return invoke("popup_pane_menu", { paneLabel, workspaces });
 }
 
 /** WorkspaceTab のネイティブコンテキストメニュー（カーソル位置）を表示する。 */

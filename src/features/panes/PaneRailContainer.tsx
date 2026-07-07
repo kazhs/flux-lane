@@ -31,7 +31,7 @@ import { resolvePaneDisplayName } from "./paneDisplay";
 import { selectPane } from "./paneNavigation";
 import { closePaneWithConfirm } from "./paneClose";
 import { resolveMoveIndex } from "./dragOrder";
-import type { Pane, PaneId, PaneRuntimeState } from "../../types";
+import type { Pane, PaneId, PaneRuntimeState, Workspace } from "../../types";
 
 function resolveIcon(
   pane: Pane,
@@ -51,6 +51,9 @@ function resolveIcon(
 export function PaneRailContainer() {
   const paneIds = useAppStore(selectActivePaneIds);
   const panes = useAppStore((s) => s.panes);
+  const workspaces = useAppStore((s) => s.workspaces);
+  const workspaceOrder = useAppStore((s) => s.workspaceOrder);
+  const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
   const movePane = useAppStore((s) => s.movePane);
   const paneRuntime = useUiStore((s) => s.paneRuntime);
   const focusedPaneId = useUiStore((s) => s.focusedPaneId);
@@ -72,9 +75,16 @@ export function PaneRailContainer() {
     let cancelled = false;
     let unlisten: (() => void) | undefined;
     void onPaneMenuAction(async (payload) => {
-      if (payload.action !== "delete") return;
       const paneId = paneIdFromLabel(payload.label);
       if (!paneId) return;
+
+      if (payload.action === "move") {
+        if (!payload.workspaceId) return;
+        useAppStore.getState().movePaneToWorkspace(paneId, payload.workspaceId);
+        return;
+      }
+
+      if (payload.action !== "delete") return;
       const pane = useAppStore.getState().panes[paneId];
       const title = pane?.title ?? paneId;
       await closePaneWithConfirm(paneId, title);
@@ -110,7 +120,15 @@ export function PaneRailContainer() {
 
   const handleContextMenu = (paneId: PaneId, event: ReactMouseEvent) => {
     event.preventDefault();
-    void popupPaneMenu(labelForPane(paneId));
+    const workspaceEntries = workspaceOrder
+      .map((id) => workspaces[id])
+      .filter((workspace): workspace is Workspace => workspace !== undefined)
+      .map((workspace) => ({
+        id: workspace.id,
+        name: workspace.name,
+        isCurrent: workspace.id === activeWorkspaceId,
+      }));
+    void popupPaneMenu(labelForPane(paneId), workspaceEntries);
   };
 
   // strip 側（PaneStripContainer）と同じ作法: ドラッグ中はポインタイベントが他 WebView に

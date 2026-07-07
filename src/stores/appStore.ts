@@ -37,6 +37,7 @@ export interface AppActions {
   ) => void;
   setPaneWidth: (paneId: PaneId, width: number) => void;
   movePane: (paneId: PaneId, toIndex: number) => void;
+  movePaneToWorkspace: (paneId: PaneId, targetWorkspaceId: WorkspaceId) => void;
   updateSettings: (patch: Partial<AppSettings>) => void;
 }
 
@@ -228,6 +229,39 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       }
 
       return { workspaces };
+    }),
+
+  movePaneToWorkspace: (paneId, targetWorkspaceId) =>
+    set((s) => {
+      if (!s.panes[paneId]) return {};
+      const target = s.workspaces[targetWorkspaceId];
+      if (!target) return {};
+
+      let sourceId: WorkspaceId | undefined;
+      for (const [wid, ws] of Object.entries(s.workspaces)) {
+        if (ws.paneIds.includes(paneId)) {
+          sourceId = wid;
+          break;
+        }
+      }
+      if (sourceId === undefined || sourceId === targetWorkspaceId) return {};
+
+      const source = s.workspaces[sourceId];
+      if (!source) return {};
+
+      return {
+        workspaces: {
+          ...s.workspaces,
+          [sourceId]: {
+            ...source,
+            paneIds: source.paneIds.filter((pid) => pid !== paneId),
+          },
+          [targetWorkspaceId]: {
+            ...target,
+            paneIds: [...target.paneIds, paneId],
+          },
+        },
+      };
     }),
 
   updateSettings: (patch) =>
