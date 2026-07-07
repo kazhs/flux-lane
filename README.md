@@ -1,4 +1,4 @@
-# flux-lane
+# FluxLane
 
 複数 SNS を複数アカウントで常時並列監視する macOS 向けアプリ。1 ウィンドウ内にサービス/アカウントごとの WebView ペインを並べ、Cookie/Storage をペイン単位で分離したまま表示し続ける。
 

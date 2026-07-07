@@ -1,4 +1,4 @@
-# flux-lane アーキテクチャ設計
+# FluxLane アーキテクチャ設計
 
 複数 SNS を複数アカウントで常時並列監視する Mac 向け WebView 管理アプリ。
 

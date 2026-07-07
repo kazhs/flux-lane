@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "flux-lane",
+  "productName": "FluxLane",
   "version": "0.1.0",
   "identifier": "com.kazhs.fluxlane",
   "build": {

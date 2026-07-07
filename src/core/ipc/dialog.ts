@@ -5,7 +5,7 @@
 import { confirm, open, save } from "@tauri-apps/plugin-dialog";
 
 export function confirmDialog(message: string): Promise<boolean> {
-  return confirm(message, { title: "flux-lane", kind: "warning" });
+  return confirm(message, { title: "FluxLane", kind: "warning" });
 }
 
 const JSON_DIALOG_FILTERS = [{ name: "JSON", extensions: ["json"] }];
