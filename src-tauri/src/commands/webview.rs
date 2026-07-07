@@ -2,6 +2,7 @@
 //! ライフサイクル判断・reconcile は TS 側 (`core/webview/WebviewManager.ts`) が担う。
 
 use serde::{Deserialize, Serialize};
+use std::sync::OnceLock;
 use tauri::{
     AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Position, Rect, Size,
     WebviewBuilder, WebviewUrl,
@@ -27,21 +28,33 @@ struct PaneLoadEventPayload {
     event: &'static str,
 }
 
-/// DOM 座標（main-ui 相対の logical px）→ 子 webview のネイティブ座標系へ変換する。
+/// 原点補正値（タイトルバー高）のキャッシュ。
 ///
 /// macOS では子 webview の座標がタイトルバー込みの window frame 原点で解釈される一方、
-/// main-ui の DOM ビューポートはタイトルバー分だけ短い（実測: window inner 800 に対し
-/// DOM viewport 772）。tauri の `Webview::size()` 等の読み値はこの差を反映しないため、
-/// **TS 側が実測した `window.innerHeight`（viewport_height）** を受け取り、
-/// `inner_size.height - viewport_height` を y 補正として加算する。差が無い環境では 0。
+/// main-ui の DOM ビューポートはタイトルバー分だけ短い。tauri の `Webview::size()` 等の
+/// 読み値はこの差を反映しないため、TS 実測の `window.innerHeight` と `inner_size` の差を
+/// y 補正に使う。差分の実体はタイトルバー高（不変）だが、Web Inspector をドックすると
+/// viewport だけが縮んで「差分」が数百 px に化けるため、妥当な範囲（0〜60px）で観測できた
+/// 最初の値を固定して以後使い回す。
+static ORIGIN_OFFSET_Y: OnceLock<f64> = OnceLock::new();
+const MAX_PLAUSIBLE_TITLEBAR_HEIGHT: f64 = 60.0;
+
 fn bounds_to_rect(app: &AppHandle, bounds: Bounds, viewport_height: f64) -> Rect {
-    let offset_y: f64 = (|| {
-        let window = app.get_window("main")?;
-        let scale = window.scale_factor().ok()?;
-        let inner_h = window.inner_size().ok()?.to_logical::<f64>(scale).height;
-        Some((inner_h - viewport_height).max(0.0))
-    })()
-    .unwrap_or(0.0);
+    let offset_y: f64 = *ORIGIN_OFFSET_Y.get_or_init(|| {
+        (|| {
+            let window = app.get_window("main")?;
+            let scale = window.scale_factor().ok()?;
+            let inner_h = window.inner_size().ok()?.to_logical::<f64>(scale).height;
+            let diff = inner_h - viewport_height;
+            // Inspector ドック中などの異常値はキャッシュせずに 0 扱い…にはできない
+            // （OnceLock は初期化を一度しか許さない）ため、範囲外は 0 を確定させる。
+            // 通常の起動シーケンスでは最初の setBounds は inspector より先に来る。
+            (0.0..=MAX_PLAUSIBLE_TITLEBAR_HEIGHT)
+                .contains(&diff)
+                .then_some(diff)
+        })()
+        .unwrap_or(0.0)
+    });
 
     Rect {
         position: Position::Logical(LogicalPosition::new(bounds.x, bounds.y + offset_y)),

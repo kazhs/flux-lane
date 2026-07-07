@@ -34,12 +34,10 @@ pub fn popup_workspace_menu(
         .get_window("main")
         .ok_or_else(|| "main window not found".to_string())?;
 
-    let rename_item = MenuItemBuilder::with_id(
-        format!("{RENAME_ITEM_PREFIX}{workspace_id}"),
-        "名前を変更",
-    )
-    .build(&app)
-    .map_err(|e| e.to_string())?;
+    let rename_item =
+        MenuItemBuilder::with_id(format!("{RENAME_ITEM_PREFIX}{workspace_id}"), "名前を変更")
+            .build(&app)
+            .map_err(|e| e.to_string())?;
 
     let delete_item = MenuItemBuilder::with_id(
         format!("{DELETE_ITEM_PREFIX}{workspace_id}"),

@@ -134,7 +134,7 @@ export function PaneRail({
             aria-label="ペインを追加"
             title="ペインを追加"
             onClick={onAddPane}
-            className="flex h-8 w-8 items-center justify-center rounded text-text-dim transition-colors hover:bg-surface-hover hover:text-text"
+            className="flex h-8 w-8 items-center justify-center rounded text-accent-bright transition-colors hover:bg-surface-hover"
           >
             <PlusIcon />
           </button>

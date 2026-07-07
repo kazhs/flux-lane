@@ -15,6 +15,7 @@
   --color-text: #e6f0fb;
   --color-text-dim: #7f9bc0;
   --color-accent: #22d3ee;
+  --color-accent-bright: #67e8f9;
   --color-accent-dim: #22d3ee80;
 }
 
@@ -44,6 +45,11 @@ a {
   );
 }
 
+/* chrome-surface のワントーン明るい版（クリック領域の面に使う）。 */
+.chrome-surface-raised {
+  background: radial-gradient(circle at center, #1e3468, #10556e);
+}
+
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--color-border) transparent;
@@ -61,12 +67,17 @@ a {
 .pane-strip::-webkit-scrollbar-track {
   background: transparent;
 }
+/* レーン幅（15px の layout 占有）はそのまま、見えるサムだけ細くする:
+   透明 border + background-clip で実表示 ~5px に絞る。色は明るいシアン。 */
 .pane-strip::-webkit-scrollbar-thumb {
-  background: var(--color-border);
+  background: var(--color-accent);
+  background-clip: padding-box;
+  border: 5px solid transparent;
   border-radius: 7px;
 }
 .pane-strip::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-dim);
+  background: var(--color-accent-bright);
+  background-clip: padding-box;
 }
 
 @keyframes spin {

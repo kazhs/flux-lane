@@ -11,7 +11,7 @@ export function AddPaneTile({ onClick }: AddPaneTileProps) {
       type="button"
       aria-label="Add pane"
       onClick={onClick}
-      className="flex h-full w-12 shrink-0 items-center justify-center text-accent transition-colors hover:bg-surface-hover"
+      className="chrome-surface-raised flex h-full w-12 shrink-0 items-center justify-center text-text transition-[filter] hover:brightness-125"
     >
       <PlusIcon size={20} />
     </button>

@@ -48,8 +48,8 @@ pub fn popup_pane_menu(
         .get_window("main")
         .ok_or_else(|| "main window not found".to_string())?;
 
-    let mut move_submenu_builder = SubmenuBuilder::new(&app, "ワークスペースへ移動")
-        .enabled(workspaces.len() > 1);
+    let mut move_submenu_builder =
+        SubmenuBuilder::new(&app, "ワークスペースへ移動").enabled(workspaces.len() > 1);
     for workspace in &workspaces {
         let move_item = MenuItemBuilder::with_id(
             format!("{MOVE_ITEM_PREFIX}{pane_label}::{}", workspace.id),

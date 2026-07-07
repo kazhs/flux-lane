@@ -11,11 +11,21 @@ pub fn run() {
         // dialog plugin のネイティブパネルを使う（wry #584）。
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-            let window = WindowBuilder::new(app, "main")
+            let window_builder = WindowBuilder::new(app, "main")
                 .title("FluxLane")
                 .inner_size(1280.0, 800.0)
-                .min_inner_size(800.0, 600.0)
-                .build()?;
+                .min_inner_size(800.0, 600.0);
+
+            // タイトルバーは標準のまま色で馴染ませる（案 2）: Transparent + 背景色で
+            // タイトルバー帯がアプリのネイビーになる。Overlay（one-bar 統合）は
+            // ネイティブのダブルクリックズームが失われるため不採用。
+            #[cfg(target_os = "macos")]
+            let window_builder = window_builder
+                .title_bar_style(tauri::TitleBarStyle::Transparent)
+                .hidden_title(true)
+                .background_color(tauri::window::Color(2, 9, 28, 255));
+
+            let window = window_builder.build()?;
 
             // Chrome Layer（React UI）。Pane Layer の webview はここに add_child で重ねる。
             window.add_child(

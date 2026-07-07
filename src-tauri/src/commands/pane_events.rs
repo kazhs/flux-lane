@@ -133,6 +133,10 @@ pub fn report_pane_account(webview: Webview, handle: String) -> Result<(), Strin
     }
 
     webview
-        .emit_to("main-ui", "pane://account", PaneAccountPayload { label, handle })
+        .emit_to(
+            "main-ui",
+            "pane://account",
+            PaneAccountPayload { label, handle },
+        )
         .map_err(|e| e.to_string())
 }
