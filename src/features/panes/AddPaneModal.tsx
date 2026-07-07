@@ -41,12 +41,21 @@ export function AddPaneModal() {
   );
   const addPane = useAppStore((s) => s.addPane);
   const setAddPaneOpen = useUiStore((s) => s.setAddPaneOpen);
+  const setFocusedPane = useUiStore((s) => s.setFocusedPane);
 
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const [urlError, setUrlError] = useState<string | undefined>(undefined);
 
   const handleCancel = () => setAddPaneOpen(false);
+
+  // モーダルを開いた時点でペイン WebView がOSキーフォーカスを保持していると（⌘T 経由など）、
+  // document の keydown が main-ui に届かず Esc もモーダル内の操作も効かない。focusedPaneId を
+  // null にすると WebviewManager が main-ui へOSフォーカスを戻す（ペインフォーカスモデル）ため、
+  // 以降のキー入力が main-ui の DOM に届くようになる。
+  useEffect(() => {
+    setFocusedPane(null);
+  }, [setFocusedPane]);
 
   // Esc でキャンセル。input にフォーカスがあっても document 側で捕まえる。
   useEffect(() => {

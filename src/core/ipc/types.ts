@@ -57,8 +57,16 @@ export interface AppGotoEventPayload {
   index: number;
 }
 
-/** `app://pane-action` イベントの payload。ネイティブメニューの「ペイン」サブメニュー
- * （⌘R = 再読み込み, ⌘W = 閉じる）。フォーカス中ペインへの適用は TS 側の責務。 */
+/** `app://pane-action` イベントの payload。ネイティブメニューの「ペイン」サブメニュー。
+ * `add` はグローバル操作（ペイン追加モーダルを開く）、それ以外はフォーカス中ペインへ適用する
+ * （フォーカス解決・適用は TS 側の責務）。 */
 export interface AppPaneActionEventPayload {
-  action: "reload" | "close";
+  action: "add" | "reload" | "toggle-mute" | "toggle-autoscroll" | "close";
+}
+
+/** `app://navigate` イベントの payload。フォーカス中ペイン / アクティブワークスペースの
+ * 相対移動（⌘⌥←→ でペイン、⌃⇥ / ⌃⇧⇥ でワークスペース）。 */
+export interface AppNavigateEventPayload {
+  target: "pane" | "workspace";
+  direction: "prev" | "next";
 }

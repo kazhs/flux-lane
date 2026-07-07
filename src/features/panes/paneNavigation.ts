@@ -46,3 +46,41 @@ export function selectPaneByIndex(index: number): void {
   if (!paneId) return;
   selectPane(paneId);
 }
+
+export type NavigateDirection = "prev" | "next";
+
+/**
+ * `current` の隣（prev = 左 / next = 右）の paneId を返す純粋関数。端はラップする（巡回）:
+ * 右端で next すると先頭、左端で prev すると末尾へ回る。`current` が null（どのペインも
+ * フォーカスなし）の場合は、prev なら末尾・next なら先頭を返す。ペインが無ければ null。
+ * DOM に触れないので単体テスト可能。
+ */
+export function resolveAdjacentPaneId(
+  paneIds: readonly PaneId[],
+  current: PaneId | null,
+  direction: NavigateDirection,
+): PaneId | null {
+  if (paneIds.length === 0) return null;
+  if (current === null) {
+    return direction === "next"
+      ? (paneIds[0] ?? null)
+      : (paneIds[paneIds.length - 1] ?? null);
+  }
+  const currentIndex = paneIds.indexOf(current);
+  if (currentIndex === -1) return paneIds[0] ?? null;
+  const delta = direction === "next" ? 1 : -1;
+  const nextIndex = (currentIndex + delta + paneIds.length) % paneIds.length;
+  return paneIds[nextIndex] ?? null;
+}
+
+/**
+ * フォーカス中ペインの隣へフォーカスを移す（`app://navigate` の target "pane" から呼ぶ）。
+ * 端はラップする（右端 next で先頭へ）。ペインが無ければ no-op。
+ */
+export function selectAdjacentPane(direction: NavigateDirection): void {
+  const paneIds = selectActivePaneIds(useAppStore.getState());
+  const current = useUiStore.getState().focusedPaneId;
+  const paneId = resolveAdjacentPaneId(paneIds, current, direction);
+  if (!paneId) return;
+  selectPane(paneId);
+}

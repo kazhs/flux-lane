@@ -3,7 +3,7 @@ import { useRef, type KeyboardEvent, type MouseEvent } from "react";
 export type WorkspaceTabProps = {
   name: string;
   active: boolean;
-  /** workspaceOrder 内の順序（1 始まり）から算出した「⌃n」表記。10 番目以降は
+  /** workspaceOrder 内の順序（1 始まり）から算出した「⌘⇧n」表記。10 番目以降は
    * 割り当てなしのため null（2 行目非表示）。 */
   shortcut: string | null;
   /** ネイティブコンテキストメニューの「名前を変更」で入ったインライン編集モード。
@@ -21,7 +21,7 @@ export type WorkspaceTabProps = {
  * （ヘッダー上端の accent ライン）と隣接して見分けが付かないため。
  * 削除操作はネイティブコンテキストメニュー経由（`onContextMenu`）のみ
  * （`PaneRail` のレールアイテムと同じ方針）。
- * 非編集時はワークスペース名 + ショートカット表記（`⌃n`）の 2 行表示
+ * 非編集時はワークスペース名 + ショートカット表記（`⌘⇧n`）の 2 行表示
  * （`PaneRail` のアカウント名 + ショートカット表記と同じ縦積みパターン）。
  */
 export function WorkspaceTab({

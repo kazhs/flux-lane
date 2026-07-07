@@ -65,7 +65,7 @@ export function WorkspaceBarContainer() {
     .map((workspace, index) => ({
       id: workspace.id,
       name: workspace.name,
-      shortcut: shortcutLabel("⌃", index + 1),
+      shortcut: shortcutLabel("⌘⇧", index + 1),
     }));
 
   const handleContextMenu = (id: string, event: ReactMouseEvent) => {

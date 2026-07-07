@@ -8,9 +8,14 @@ import { completeShutdown } from "../core/ipc/commands";
 import {
   onAppCloseRequested,
   onAppGoto,
+  onAppNavigate,
   onAppPaneAction,
 } from "../core/ipc/events";
-import { selectPaneByIndex } from "../features/panes/paneNavigation";
+import {
+  selectAdjacentPane,
+  selectPaneByIndex,
+} from "../features/panes/paneNavigation";
+import { activateAdjacentWorkspace } from "../features/workspaces/workspaceNavigation";
 import { closePaneWithConfirm } from "../features/panes/paneClose";
 
 let persister: Persister | null = null;
@@ -69,19 +74,52 @@ export async function bootstrap(): Promise<void> {
     useAppStore.getState().setActiveWorkspace(workspaceId);
   });
 
-  // ネイティブメニューの「ペイン」サブメニュー（⌘R = 再読み込み, ⌘W = 閉じる）。
-  // フォーカス中ペインが無い（null）場合は no-op。closePaneWithConfirm は確認発火前に
-  // paneId/title を確定させるため、確認待ち中にフォーカスが変わっても対象はずれない。
+  // ネイティブメニューの「ペイン」サブメニュー。add はグローバル（フォーカス不問でモーダルを
+  // 開く）、それ以外はフォーカス中ペインが対象。フォーカスが無い（null）場合は no-op。
+  // closePaneWithConfirm は確認発火前に paneId/title を確定させるため、確認待ち中にフォーカスが
+  // 変わっても対象はずれない。
   void onAppPaneAction((payload) => {
+    if (payload.action === "add") {
+      useUiStore.getState().setAddPaneOpen(true);
+      return;
+    }
+
     const paneId = useUiStore.getState().focusedPaneId;
     if (!paneId) return;
+
     if (payload.action === "reload") {
       void webviewManager.reload(paneId);
       return;
     }
+    if (payload.action === "toggle-mute") {
+      const pane = useAppStore.getState().panes[paneId];
+      if (!pane) return;
+      const muted = !pane.muted;
+      useAppStore.getState().updatePane(paneId, { muted });
+      void webviewManager.setMuted(paneId, muted);
+      return;
+    }
+    if (payload.action === "toggle-autoscroll") {
+      const pane = useAppStore.getState().panes[paneId];
+      if (!pane) return;
+      const autoScroll = !pane.autoScroll;
+      useAppStore.getState().updatePane(paneId, { autoScroll });
+      void webviewManager.setAutoScroll(paneId, autoScroll);
+      return;
+    }
+    // action === "close"
     const pane = useAppStore.getState().panes[paneId];
     const title = pane?.title ?? paneId;
     void closePaneWithConfirm(paneId, title);
+  });
+
+  // ペイン / ワークスペースの相対移動（⌘⌥←→ / ⌃⇥・⌃⇧⇥）。
+  void onAppNavigate((payload) => {
+    if (payload.target === "pane") {
+      selectAdjacentPane(payload.direction);
+      return;
+    }
+    activateAdjacentWorkspace(payload.direction);
   });
 
   // 二段階シャットダウンが主経路。beforeunload は reload 等の取りこぼし向け best-effort。
