@@ -83,33 +83,18 @@ pub const PANE_FOCUS_INIT_SCRIPT: &str = r#"(function () {
     { capture: true },
   );
 
-  var pendingDeltaX = 0;
-  var pendingDeltaY = 0;
-  var rafScheduled = false;
-
-  function flushWheel() {
-    rafScheduled = false;
-    var deltaX = pendingDeltaX;
-    var deltaY = pendingDeltaY;
-    pendingDeltaX = 0;
-    pendingDeltaY = 0;
-    invoke("forward_pane_wheel", { deltaX: deltaX, deltaY: deltaY }).catch(
-      function () {},
-    );
-  }
-
   window.addEventListener(
     "wheel",
     function (event) {
       if (focused) return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      pendingDeltaX += event.deltaX;
-      pendingDeltaY += event.deltaY;
-      if (!rafScheduled) {
-        rafScheduled = true;
-        requestAnimationFrame(flushWheel);
-      }
+      // rAF バッチせず即転送する。バッチは最大 1 フレームの遅延と入力のクランプを生み、
+      // 受信側の慣性補間と合わせてもネイティブスクロールとの体感差が大きくなる。
+      invoke("forward_pane_wheel", {
+        deltaX: event.deltaX,
+        deltaY: event.deltaY,
+      }).catch(function () {});
     },
     { capture: true, passive: false },
   );

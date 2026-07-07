@@ -17,6 +17,7 @@ import { useUiStore } from "../../stores/uiStore";
 import { selectActivePaneIds } from "../../stores/selectors";
 import { layoutController } from "../../core/webview/LayoutController";
 import { webviewManager } from "../../core/webview/WebviewManager";
+import { createSmoothScroller } from "../../lib/smoothScroll";
 import { PaneStrip } from "../../components/pane/PaneStrip";
 import { AddPaneTile } from "../../components/pane/AddPaneTile";
 import { PaneItem } from "./PaneItem";
@@ -52,15 +53,18 @@ export function PaneStripContainer() {
   }, [paneIds.length]);
 
   // 未フォーカスペイン上の wheel は `pane://wheel` で転送される（`WebviewManager`）。
-  // 横ジェスチャ（deltaX）のみストリップスクロールに反映する。縦→横の変換はしない:
-  // トラックパッドの縦スワイプが横スクロールになるのは直感に反するため、未フォーカス
-  // ペイン上の縦スワイプは「何もしない」が正しい（DOM 露出領域の変換とは別ポリシー）。
+  // 横ジェスチャ（deltaX）のみ、慣性補間（smoothScroll）でストリップスクロールに反映する。
+  // 縦→横の変換はしない: トラックパッドの縦スワイプが横スクロールになるのは直感に反する
+  // ため、未フォーカスペイン上の縦スワイプは「何もしない」が正しい。
   useEffect(() => {
-    return webviewManager.onPaneWheel((_paneId, deltaX) => {
-      const el = containerElRef.current;
-      if (!el || deltaX === 0) return;
-      el.scrollLeft += deltaX;
+    const scroller = createSmoothScroller(() => containerElRef.current);
+    const unsubscribe = webviewManager.onPaneWheel((_paneId, deltaX) => {
+      scroller.addDelta(deltaX);
     });
+    return () => {
+      unsubscribe();
+      scroller.cancel();
+    };
   }, []);
 
   const handleDragStart = useCallback(() => {
