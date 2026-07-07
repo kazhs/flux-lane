@@ -52,6 +52,10 @@ export function PaneRailContainer() {
   // レールのネイティブコンテキストメニュー（Rust 側 `popup_pane_menu`）からの削除操作を
   // 受け取る。クリックによるジャンプ + フォーカスは既存の handleSelect のまま変更しない。
   useEffect(() => {
+    // listen() は非同期に解決するため、cleanup が unlisten 取得前に走ると listener が
+    // 永久に残る（StrictMode の二重マウント・ビュー切替の再マウントで 1 個ずつ増え、
+    // 削除確認モーダルが多重表示される実バグになった）。cancelled ガードで解決直後に破棄する。
+    let cancelled = false;
     let unlisten: (() => void) | undefined;
     void onPaneMenuAction(async (payload) => {
       if (payload.action !== "delete") return;
@@ -66,9 +70,17 @@ export function PaneRailContainer() {
       removePane(paneId);
       removePaneRuntime(paneId);
     }).then((fn) => {
+      if (cancelled) {
+        fn();
+        return;
+      }
       unlisten = fn;
     });
-    return () => unlisten?.();
+    return () => {
+      cancelled = true;
+      unlisten?.();
+      unlisten = undefined;
+    };
   }, [removePane, removePaneRuntime]);
 
   const items: PaneRailItem[] = paneIds
