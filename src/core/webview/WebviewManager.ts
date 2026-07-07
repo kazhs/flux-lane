@@ -26,6 +26,7 @@ import type {
   PaneWheelEventPayload,
 } from "../ipc/types";
 import { labelForPane, paneIdFromLabel } from "./paneLabel";
+import { layoutController } from "./LayoutController";
 import { computeWebviewOps } from "./reconcile";
 import {
   AUTO_SCROLL_START_SCRIPT,
@@ -275,12 +276,22 @@ class WebviewManager {
 
     for (const op of creates) {
       try {
-        // 初期 bounds は 0 埋め: 実座標は直後の LayoutController -> setBounds で反映される。
+        // 初期 bounds は placeholder の実測値を使う。サイズ 0 で生成するとページが
+        // 0×0 ビューポートで初期化され、チャート系サイト（TradingView 等）の描画が
+        // リロードまで壊れるため。React の commit 前で未計測なら 1 フレーム待って再取得し、
+        // それでも取れなければ 0 埋め（直後の setBounds で追随、従来挙動）。
+        let initialRect = layoutController.getCurrentRect(op.paneId);
+        if (!initialRect && typeof requestAnimationFrame === "function") {
+          await new Promise<void>((resolve) => {
+            requestAnimationFrame(() => resolve());
+          });
+          initialRect = layoutController.getCurrentRect(op.paneId);
+        }
         await createPaneWebview({
           label: labelForPane(op.paneId),
           url: op.url,
           sessionId: op.sessionId,
-          bounds: { x: 0, y: 0, width: 0, height: 0 },
+          bounds: initialRect ?? { x: 0, y: 0, width: 0, height: 0 },
           viewportHeight: window.innerHeight,
         });
         this.createdSessionIds.set(op.paneId, op.sessionId);

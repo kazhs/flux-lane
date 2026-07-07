@@ -131,6 +131,35 @@ export class LayoutController {
     this.scrollListenerTarget = null;
   }
 
+  /**
+   * 指定 pane の placeholder rect を即時計測する（rAF を待たない）。
+   * WebView 生成時の初期 bounds 用: サイズ 0 で生成するとチャート系サイトが
+   * 0×0 ビューポートで初期化されて壊れるため、生成時点の実サイズを渡す。
+   * 未登録・可視部分なしの場合は null。
+   */
+  getCurrentRect(paneId: PaneId): Rect | null {
+    const el = this.placeholders.get(paneId);
+    if (!el) return null;
+
+    const containerDomRect = this.container?.getBoundingClientRect();
+    const containerRect: Rect | null = containerDomRect
+      ? {
+          x: containerDomRect.x,
+          y: containerDomRect.y,
+          width: containerDomRect.width,
+          height: containerDomRect.height,
+        }
+      : null;
+
+    const domRect = el.getBoundingClientRect();
+    return clampRectToContainer(containerRect, {
+      x: domRect.x,
+      y: domRect.y,
+      width: domRect.width,
+      height: domRect.height,
+    });
+  }
+
   private measure(): void {
     const containerDomRect = this.container?.getBoundingClientRect();
     const containerRect: Rect | null = containerDomRect
