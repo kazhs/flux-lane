@@ -107,6 +107,48 @@ export function PauseIcon({ size = 16, className }: IconProps) {
   );
 }
 
+export function DiscordIcon({ size = 16, className }: IconProps) {
+  return (
+    <svg width={size} height={size} className={className} {...BASE_PROPS}>
+      <path d="M3 9.5V6.5C3 3.5 5 2 8 2s5 1.5 5 4.5v3c0 1.5-1 2.5-2.5 2.5-.3 0-.5-.2-.5-.5v-.6c-1.3.3-2.7.3-4 0v.6c0 .3-.2.5-.5.5C4 12 3 11 3 9.5Z" />
+      <circle cx="6" cy="7.2" r="0.4" fill="currentColor" stroke="none" />
+      <circle cx="10" cy="7.2" r="0.4" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function InstagramIcon({ size = 16, className }: IconProps) {
+  return (
+    <svg width={size} height={size} className={className} {...BASE_PROPS}>
+      <rect x="2.5" y="2.5" width="11" height="11" rx="3" />
+      <circle cx="8" cy="8" r="3" />
+      <circle cx="11.5" cy="4.5" r="0.6" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function ThreadsIcon({ size = 16, className }: IconProps) {
+  return (
+    <svg width={size} height={size} className={className} {...BASE_PROPS}>
+      <path d="M10.5 3.5c-3.5-1.5-7 .5-7 4 0 2.8 2 4.5 4.3 4.5 1.8 0 3.2-1 3.2-2.6 0-1.3-1-2.2-2.3-2.2-1 0-1.7.6-1.7 1.5 0 .6.4 1 1 1" />
+    </svg>
+  );
+}
+
+export function FacebookIcon({ size = 16, className }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      className={className}
+      fill="currentColor"
+    >
+      <path d="M10.5 2.5h-1c-1.1 0-2 .9-2 2V7H5.5v2h2v5h2V9h1.9l.3-2H9.5V4.8c0-.28.22-.5.5-.5h1.5V2.5Z" />
+    </svg>
+  );
+}
+
 export function GripIcon({ size = 16, className }: IconProps) {
   return (
     <svg

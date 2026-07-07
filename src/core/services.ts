@@ -57,4 +57,24 @@ export const PRESET_SERVICES: ServiceDefinition[] = [
     url: "https://x.com",
     accountProbeScript: X_ACCOUNT_PROBE_SCRIPT,
   },
+  {
+    id: "discord",
+    name: "Discord",
+    url: "https://discord.com/app",
+  },
+  {
+    id: "instagram",
+    name: "Instagram",
+    url: "https://www.instagram.com",
+  },
+  {
+    id: "threads",
+    name: "Threads",
+    url: "https://www.threads.com",
+  },
+  {
+    id: "facebook",
+    name: "Facebook",
+    url: "https://www.facebook.com",
+  },
 ];

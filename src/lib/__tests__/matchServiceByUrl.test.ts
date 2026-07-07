@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { matchServiceByUrl } from "../matchServiceByUrl";
+import { PRESET_SERVICES } from "../../core/services";
 import type { ServiceDefinition } from "../../core/services";
 
 const SERVICES: ServiceDefinition[] = [
@@ -29,5 +30,14 @@ describe("matchServiceByUrl", () => {
 
   it("does not match a hostname that merely contains the preset as a substring", () => {
     expect(matchServiceByUrl("https://notx.com", SERVICES)).toBeNull();
+  });
+
+  it.each([
+    ["https://discord.com/channels/1", "discord"],
+    ["https://www.instagram.com/someone", "instagram"],
+    ["https://www.threads.com/@someone", "threads"],
+    ["https://www.facebook.com/someone", "facebook"],
+  ])("matches %s against the %s preset", (url, id) => {
+    expect(matchServiceByUrl(url, PRESET_SERVICES)?.id).toBe(id);
   });
 });
