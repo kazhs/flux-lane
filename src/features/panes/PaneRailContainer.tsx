@@ -8,10 +8,13 @@ import { useUiStore } from "../../stores/uiStore";
 import { selectActivePaneIds } from "../../stores/selectors";
 import { PaneRail, type PaneRailItem } from "../../components/pane/PaneRail";
 import { iconForUrl } from "../../components/pane/servicePresetIcons";
+import { PRESET_SERVICES } from "../../core/services";
 import { popupPaneMenu } from "../../core/ipc/commands";
 import { onPaneMenuAction } from "../../core/ipc/events";
 import { labelForPane, paneIdFromLabel } from "../../core/webview/paneLabel";
 import { confirmDialog } from "../../core/ipc/dialog";
+import { shortcutLabel } from "../../lib/shortcutLabel";
+import { resolvePaneDisplayName } from "./paneDisplay";
 import { selectPane } from "./paneNavigation";
 import type { Pane, PaneId, PaneRuntimeState } from "../../types";
 
@@ -76,13 +79,18 @@ export function PaneRailContainer() {
   const items: PaneRailItem[] = paneIds
     .map((paneId) => panes[paneId])
     .filter((pane): pane is Pane => pane !== undefined)
-    .map((pane) => ({
-      paneId: pane.id,
-      title: pane.title,
-      accountLabel: paneRuntime[pane.id]?.accountLabel ?? null,
-      iconNode: resolveIcon(pane, paneRuntime[pane.id]),
-      focused: focusedPaneId === pane.id,
-    }));
+    .map((pane, index) => {
+      const runtime = paneRuntime[pane.id];
+      const url = runtime?.currentUrl ?? pane.url;
+      return {
+        paneId: pane.id,
+        title: resolvePaneDisplayName(url, pane.title, PRESET_SERVICES),
+        accountLabel: runtime?.accountLabel ?? null,
+        shortcut: shortcutLabel("⌘", index + 1),
+        iconNode: resolveIcon(pane, runtime),
+        focused: focusedPaneId === pane.id,
+      };
+    });
 
   const handleContextMenu = (paneId: PaneId, event: ReactMouseEvent) => {
     event.preventDefault();

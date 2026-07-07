@@ -5,6 +5,7 @@ import { WorkspaceBar } from "../../components/workspace/WorkspaceBar";
 import { popupWorkspaceMenu } from "../../core/ipc/commands";
 import { onWorkspaceMenuAction } from "../../core/ipc/events";
 import { confirmDialog } from "../../core/ipc/dialog";
+import { shortcutLabel } from "../../lib/shortcutLabel";
 import type { Workspace } from "../../types";
 
 export function WorkspaceBarContainer() {
@@ -61,7 +62,11 @@ export function WorkspaceBarContainer() {
   const workspaceList = workspaceOrder
     .map((id) => workspaces[id])
     .filter((workspace): workspace is Workspace => workspace !== undefined)
-    .map((workspace) => ({ id: workspace.id, name: workspace.name }));
+    .map((workspace, index) => ({
+      id: workspace.id,
+      name: workspace.name,
+      shortcut: shortcutLabel("⌃", index + 1),
+    }));
 
   const handleContextMenu = (id: string, event: ReactMouseEvent) => {
     event.preventDefault();

@@ -1,13 +1,19 @@
 import type { MouseEvent, ReactNode } from "react";
 import type { PaneId } from "../../types";
+import { paneRailTooltip } from "../../lib/paneRailTooltip";
 import { PlusIcon } from "../ui/icons";
 
 export type PaneRailItem = {
   paneId: PaneId;
+  /** tooltip 用の表示名。既知サービスにマッチする場合はサービス名、しなければ
+   * pane のタイトル（`paneDisplay.resolvePaneDisplayName` で解決済み）。 */
   title: string;
   /** サービスの `accountProbeScript` が検知したログイン中アカウントのハンドル。
    * 未検知・非対応サービスは null（アイコンのみ表示）。 */
   accountLabel: string | null;
+  /** アクティブ workspace 内の順序（1 始まり）から算出した「⌘n」表記。
+   * 10 番目以降は割り当てなしのため null（バッジ非表示・tooltip でも省略）。 */
+  shortcut: string | null;
   iconNode: ReactNode;
   focused: boolean;
 };
@@ -43,11 +49,11 @@ export function PaneRail({
           <div key={item.paneId} className="flex justify-center">
             <button
               type="button"
-              title={
-                item.accountLabel
-                  ? `${item.title} (${item.accountLabel})`
-                  : item.title
-              }
+              title={paneRailTooltip(
+                item.title,
+                item.accountLabel,
+                item.shortcut,
+              )}
               onClick={() => onSelect(item.paneId)}
               onContextMenu={(event) => onContextMenu(item.paneId, event)}
               className={`relative flex w-10 flex-col items-center justify-center gap-0.5 rounded px-1 py-1.5 text-text-dim transition-colors hover:bg-surface-hover hover:text-text ${
@@ -66,6 +72,11 @@ export function PaneRail({
               {item.accountLabel && (
                 <span className="w-full truncate text-center text-[9px] leading-none">
                   {item.accountLabel}
+                </span>
+              )}
+              {item.shortcut && (
+                <span className="w-full truncate text-center text-[9px] leading-none text-text-dim">
+                  {item.shortcut}
                 </span>
               )}
             </button>

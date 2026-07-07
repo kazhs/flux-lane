@@ -4,7 +4,7 @@ import { PlusIcon, SettingsIcon } from "../ui/icons";
 import { WorkspaceTab } from "./WorkspaceTab";
 
 export type WorkspaceBarProps = {
-  workspaces: { id: string; name: string }[];
+  workspaces: { id: string; name: string; shortcut: string | null }[];
   activeId: string | null;
   /** インライン編集モード中のワークスペース id（ネイティブメニューの「名前を変更」）。 */
   editingWorkspaceId: string | null;
@@ -28,13 +28,14 @@ export function WorkspaceBar({
   onRenameCancel,
 }: WorkspaceBarProps) {
   return (
-    <div className="flex h-9 items-center border-b border-border bg-surface pr-2">
+    <div className="flex h-10 items-center border-b border-border bg-surface pr-2">
       <div className="flex h-full items-center">
         {workspaces.map((workspace) => (
           <WorkspaceTab
             key={workspace.id}
             name={workspace.name}
             active={workspace.id === activeId}
+            shortcut={workspace.shortcut}
             editing={workspace.id === editingWorkspaceId}
             onSelect={() => onSelect(workspace.id)}
             onContextMenu={(event) => onContextMenu(workspace.id, event)}

@@ -3,6 +3,9 @@ import { useRef, type KeyboardEvent, type MouseEvent } from "react";
 export type WorkspaceTabProps = {
   name: string;
   active: boolean;
+  /** workspaceOrder 内の順序（1 始まり）から算出した「⌃n」表記。10 番目以降は
+   * 割り当てなしのため null（2 行目非表示）。 */
+  shortcut: string | null;
   /** ネイティブコンテキストメニューの「名前を変更」で入ったインライン編集モード。
    * true の間はボタンではなくテキスト input を表示する。 */
   editing: boolean;
@@ -18,10 +21,13 @@ export type WorkspaceTabProps = {
  * （ヘッダー上端の accent ライン）と隣接して見分けが付かないため。
  * 削除操作はネイティブコンテキストメニュー経由（`onContextMenu`）のみ
  * （`PaneRail` のレールアイテムと同じ方針）。
+ * 非編集時はワークスペース名 + ショートカット表記（`⌃n`）の 2 行表示
+ * （`PaneRail` のアカウント名 + ショートカット表記と同じ縦積みパターン）。
  */
 export function WorkspaceTab({
   name,
   active,
+  shortcut,
   editing,
   onSelect,
   onContextMenu,
@@ -80,13 +86,18 @@ export function WorkspaceTab({
       type="button"
       onClick={onSelect}
       onContextMenu={onContextMenu}
-      className={`my-1 rounded px-3 py-0.5 text-sm transition-colors ${
+      className={`flex flex-col items-center justify-center rounded px-3 py-1 text-sm transition-colors ${
         active
           ? "bg-surface-hover text-text"
           : "text-text-dim hover:bg-surface hover:text-text"
       }`}
     >
-      {name}
+      <span className="leading-tight">{name}</span>
+      {shortcut && (
+        <span className="text-[9px] leading-none text-text-dim">
+          {shortcut}
+        </span>
+      )}
     </button>
   );
 }
