@@ -2,27 +2,32 @@ import type { PaneId, Rect } from "../../types";
 import { RECT_EPSILON } from "./diffRects";
 
 /**
- * container（PaneStrip の横スクロール領域）の左境界をまたいだ、または右境界の外に完全に
- * 出た placeholder を「hidden」と判定する純関数。右境界からのはみ出しは window が自然に
- * クリップするので対象外（DOM が奥にあるネイティブ webview を覆えるのは左レールだけ）。
+ * placeholder rect を container（PaneStrip の横スクロール領域）の可視範囲にクランプする。
+ *
+ * - 左境界: レール（DOM）はネイティブ WebView より奥にあり部分クリップ API も無いため、
+ *   境界をまたいだ分だけ WebView の bounds を削って重なりを防ぐ。削った間はページ左端が
+ *   固定表示になる過渡アーティファクトが出るが、ペインは生きたまま残る（境界を 1px
+ *   またいだだけで全体をカード化していた旧仕様は「WebView が壊れた」ように見えた）。
+ * - 可視部分が無い場合は null = hidden（WebView を隠す）。
+ * - 右境界: window が自然にクリップするのでクランプ不要。
  */
-export function computeHiddenPaneIds(
+export function clampRectToContainer(
   containerRect: Rect | null,
-  rects: ReadonlyMap<PaneId, Rect>,
+  rect: Rect,
   epsilon: number = RECT_EPSILON,
-): Set<PaneId> {
-  const hidden = new Set<PaneId>();
-  if (!containerRect) return hidden;
+): Rect | null {
+  if (!containerRect) return rect;
 
   const containerLeft = containerRect.x;
   const containerRight = containerRect.x + containerRect.width;
+  const right = rect.x + rect.width;
 
-  for (const [paneId, rect] of rects) {
-    if (rect.x < containerLeft - epsilon || rect.x >= containerRight) {
-      hidden.add(paneId);
-    }
+  if (rect.x >= containerRight - epsilon) return null; // 右に完全アウト
+  if (right <= containerLeft + epsilon) return null; // 左に完全アウト
+  if (rect.x < containerLeft - epsilon) {
+    return { ...rect, x: containerLeft, width: right - containerLeft };
   }
-  return hidden;
+  return rect;
 }
 
 /**

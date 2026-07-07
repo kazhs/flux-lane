@@ -1,78 +1,75 @@
 import { describe, expect, it } from "vitest";
-import { computeHiddenPaneIds, diffHiddenPaneIds } from "../paneVisibility";
+import { clampRectToContainer, diffHiddenPaneIds } from "../paneVisibility";
 import type { Rect } from "../../../types";
 
 function rect(x: number, y: number, width: number, height: number): Rect {
   return { x, y, width, height };
 }
 
-describe("computeHiddenPaneIds", () => {
+describe("clampRectToContainer", () => {
   const container = rect(44, 0, 800, 600); // レール幅 44px 分だけ左に寄った container
 
-  it("returns empty when containerRect is null (未計測)", () => {
-    const rects = new Map([["p1", rect(0, 0, 100, 100)]]);
-    expect(computeHiddenPaneIds(null, rects)).toEqual(new Set());
+  it("containerRect が null（未計測）なら rect をそのまま返す", () => {
+    const r = rect(0, 0, 100, 100);
+    expect(clampRectToContainer(null, r)).toEqual(r);
   });
 
-  it("marks a pane hidden when it crosses the left boundary", () => {
-    const rects = new Map([["p1", rect(0, 0, 100, 100)]]); // x=0 < containerLeft=44
-    expect(computeHiddenPaneIds(container, rects)).toEqual(new Set(["p1"]));
+  it("container 内に完全に収まる rect はそのまま返す", () => {
+    const r = rect(100, 0, 400, 600);
+    expect(clampRectToContainer(container, r)).toEqual(r);
   });
 
-  it("keeps a pane visible when flush with the left boundary", () => {
-    const rects = new Map([["p1", rect(44, 0, 100, 100)]]);
-    expect(computeHiddenPaneIds(container, rects).size).toBe(0);
+  it("左境界ちょうどの rect はそのまま返す", () => {
+    const r = rect(44, 0, 400, 600);
+    expect(clampRectToContainer(container, r)).toEqual(r);
   });
 
-  it("marks a pane hidden when fully past the right boundary", () => {
-    const rects = new Map([["p1", rect(844, 0, 100, 100)]]); // x >= containerRight=844
-    expect(computeHiddenPaneIds(container, rects)).toEqual(new Set(["p1"]));
+  it("左境界をまたいだ rect は可視部分にクランプする（hidden にしない）", () => {
+    const clamped = clampRectToContainer(container, rect(-56, 0, 400, 600));
+    expect(clamped).toEqual(rect(44, 0, 300, 600)); // 右端 344 は維持
   });
 
-  it("keeps a pane visible when only partially overflowing the right edge", () => {
-    const rects = new Map([["p1", rect(700, 0, 200, 100)]]); // x=700 < containerRight
-    expect(computeHiddenPaneIds(container, rects).size).toBe(0);
+  it("1px だけまたいだ rect もクランプで生き残る（旧仕様では全体カード化していた）", () => {
+    const clamped = clampRectToContainer(container, rect(42, 0, 400, 600));
+    expect(clamped).toEqual(rect(44, 0, 398, 600));
   });
 
-  it("respects epsilon at the left boundary", () => {
-    const rects = new Map([["p1", rect(43.7, 0, 100, 100)]]);
-    expect(computeHiddenPaneIds(container, rects, 0.5).size).toBe(0);
+  it("左に完全に出た rect は null（hidden）", () => {
+    expect(clampRectToContainer(container, rect(-500, 0, 400, 600))).toBeNull();
   });
 
-  it("evaluates multiple panes independently", () => {
-    const rects = new Map([
-      ["visible", rect(100, 0, 100, 100)],
-      ["hidden", rect(0, 0, 100, 100)],
-    ]);
-    expect(computeHiddenPaneIds(container, rects)).toEqual(new Set(["hidden"]));
+  it("右に完全に出た rect は null（hidden）", () => {
+    expect(clampRectToContainer(container, rect(844, 0, 400, 600))).toBeNull();
+  });
+
+  it("右境界の部分はみ出しはクランプしない（window が自然にクリップする）", () => {
+    const r = rect(700, 0, 400, 600);
+    expect(clampRectToContainer(container, r)).toEqual(r);
   });
 });
 
 describe("diffHiddenPaneIds", () => {
-  it("reports a pane newly hidden as true", () => {
+  it("新たに hidden になった paneId を true で返す", () => {
     const changed = diffHiddenPaneIds(new Set(), new Set(["p1"]));
     expect(changed).toEqual(new Map([["p1", true]]));
   });
 
-  it("reports a pane newly visible as false", () => {
+  it("hidden から復帰した paneId を false で返す", () => {
     const changed = diffHiddenPaneIds(new Set(["p1"]), new Set());
     expect(changed).toEqual(new Map([["p1", false]]));
   });
 
-  it("reports nothing when the hidden set is unchanged", () => {
+  it("変化が無ければ空", () => {
     const changed = diffHiddenPaneIds(new Set(["p1"]), new Set(["p1"]));
     expect(changed.size).toBe(0);
   });
 
-  it("handles multiple panes, reporting only the changed ones", () => {
-    const changed = diffHiddenPaneIds(
-      new Set(["p1", "p2"]),
-      new Set(["p1", "p3"]),
-    );
+  it("追加と復帰が同時でも両方返す", () => {
+    const changed = diffHiddenPaneIds(new Set(["p1"]), new Set(["p2"]));
     expect(changed).toEqual(
       new Map([
-        ["p3", true],
-        ["p2", false],
+        ["p2", true],
+        ["p1", false],
       ]),
     );
   });

@@ -1,9 +1,9 @@
 import type { PaneId, Rect } from "../../types";
 import { diffRects } from "./diffRects";
-import { computeHiddenPaneIds, diffHiddenPaneIds } from "./paneVisibility";
+import { clampRectToContainer, diffHiddenPaneIds } from "./paneVisibility";
 
 export type RectMap = Map<PaneId, Rect>;
-/** paneId -> 新しい hidden 値（true = 左境界をまたいで隠す、false = 復帰）。変化分のみ。 */
+/** paneId -> 新しい hidden 値（true = 可視部分が無く隠す、false = 復帰）。変化分のみ。 */
 export type HiddenChangeMap = Map<PaneId, boolean>;
 export type LayoutChangeCallback = (
   rects: RectMap,
@@ -132,24 +132,46 @@ export class LayoutController {
   }
 
   private measure(): void {
+    const containerDomRect = this.container?.getBoundingClientRect();
+    const containerRect: Rect | null = containerDomRect
+      ? {
+          x: containerDomRect.x,
+          y: containerDomRect.y,
+          width: containerDomRect.width,
+          height: containerDomRect.height,
+        }
+      : null;
+
     const next: RectMap = new Map();
+    const nextHidden = new Set<PaneId>();
     for (const [paneId, el] of this.placeholders) {
       const domRect = el.getBoundingClientRect();
-      next.set(paneId, {
+      const clamped = clampRectToContainer(containerRect, {
         x: domRect.x,
         y: domRect.y,
         width: domRect.width,
         height: domRect.height,
       });
+      if (clamped === null) {
+        nextHidden.add(paneId);
+      } else {
+        next.set(paneId, clamped);
+      }
     }
 
     const changedRects = diffRects(this.lastRects, next);
     this.lastRects = next;
 
-    const containerRect = this.container?.getBoundingClientRect() ?? null;
-    const nextHidden = computeHiddenPaneIds(containerRect, next);
     const changedHidden = diffHiddenPaneIds(this.lastHidden, nextHidden);
     this.lastHidden = nextHidden;
+
+    // hidden から復帰したペインは native 側の bounds が古い可能性があるため、
+    // diff の結果に関わらず必ず再送する。
+    for (const [paneId, hidden] of changedHidden) {
+      if (hidden) continue;
+      const rect = next.get(paneId);
+      if (rect) changedRects.set(paneId, rect);
+    }
 
     if (changedRects.size > 0 || changedHidden.size > 0) {
       this.onChange?.(changedRects, changedHidden);
