@@ -81,3 +81,13 @@ export function savePersistedState(json: string): Promise<void> {
 export function completeShutdown(): Promise<void> {
   return invoke("complete_shutdown");
 }
+
+/** バックアップ用エクスポート: ユーザーが選んだ任意 path に書き込む。 */
+export function exportConfigFile(path: string, json: string): Promise<void> {
+  return invoke("export_config_file", { path, json });
+}
+
+/** バックアップ用インポート: ユーザーが選んだ任意 path から読む。 */
+export function importConfigFile(path: string): Promise<string> {
+  return invoke("import_config_file", { path });
+}

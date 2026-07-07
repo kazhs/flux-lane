@@ -6,6 +6,8 @@
   "permissions": [
     "core:default",
     "dialog:allow-confirm",
+    "dialog:allow-save",
+    "dialog:allow-open",
     "allow-create-pane-webview",
     "allow-destroy-pane-webview",
     "allow-set-pane-bounds",
@@ -17,6 +19,8 @@
     "allow-popup-workspace-menu",
     "allow-load-persisted-state",
     "allow-save-persisted-state",
+    "allow-export-config-file",
+    "allow-import-config-file",
     "allow-complete-shutdown"
   ]
 }

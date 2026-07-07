@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useAppStore } from "../../stores/appStore";
 import { useUiStore } from "../../stores/uiStore";
 import { Button } from "../../components/ui/Button";
@@ -5,6 +6,8 @@ import { TextField } from "../../components/ui/TextField";
 import { IconButton } from "../../components/ui/IconButton";
 import { CloseIcon } from "../../components/ui/icons";
 import { confirmDialog } from "../../core/ipc/dialog";
+import { exportConfig } from "../../core/persistence/exportConfig";
+import { importConfig } from "../../core/persistence/importConfig";
 
 const MIN_RATIO_PERCENT = 20;
 const MAX_RATIO_PERCENT = 90;
@@ -19,6 +22,7 @@ export function SettingsView() {
   const workspaces = useAppStore((s) => s.workspaces);
   const renameWorkspace = useAppStore((s) => s.renameWorkspace);
   const removeWorkspace = useAppStore((s) => s.removeWorkspace);
+  const [backupMessage, setBackupMessage] = useState<string | null>(null);
 
   const ratioPercent = Math.round(defaultPaneWidthRatio * 100);
 
@@ -34,6 +38,30 @@ export function SettingsView() {
     const ok = await confirmDialog(`ワークスペース「${name}」を削除しますか？`);
     if (!ok) return;
     removeWorkspace(id);
+  };
+
+  const handleExport = async () => {
+    try {
+      const done = await exportConfig();
+      setBackupMessage(done ? "エクスポートしました" : null);
+    } catch {
+      setBackupMessage("エクスポートに失敗しました");
+    }
+  };
+
+  const handleImport = async () => {
+    const ok = await confirmDialog(
+      "現在の構成を置き換えます。ペインのセッション（ログイン状態）は含まれない/変わりません。よろしいですか？",
+    );
+    if (!ok) return;
+
+    try {
+      const result = await importConfig();
+      if (result === "done") setBackupMessage("インポートしました");
+      else if (result === "invalid") setBackupMessage("無効なファイルです");
+    } catch {
+      setBackupMessage("インポートに失敗しました");
+    }
   };
 
   return (
@@ -91,6 +119,17 @@ export function SettingsView() {
             );
           })}
         </ul>
+      </section>
+
+      <section className="flex max-w-md flex-col gap-3">
+        <h2 className="text-sm font-semibold text-text">バックアップ</h2>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => void handleExport()}>エクスポート…</Button>
+          <Button onClick={() => void handleImport()}>インポート…</Button>
+        </div>
+        {backupMessage && (
+          <p className="text-sm text-text-dim">{backupMessage}</p>
+        )}
       </section>
     </div>
   );

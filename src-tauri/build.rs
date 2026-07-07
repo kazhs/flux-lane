@@ -20,6 +20,8 @@ fn main() {
             "popup_workspace_menu",
             "load_persisted_state",
             "save_persisted_state",
+            "export_config_file",
+            "import_config_file",
             "complete_shutdown",
             "notify_pane_pointer_down",
             "forward_pane_wheel",

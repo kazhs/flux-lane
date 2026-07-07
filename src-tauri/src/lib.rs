@@ -67,6 +67,8 @@ pub fn run() {
             commands::pane_events::report_pane_account,
             commands::storage::load_persisted_state,
             commands::storage::save_persisted_state,
+            commands::storage::export_config_file,
+            commands::storage::import_config_file,
             commands::shutdown::complete_shutdown,
         ])
         .run(tauri::generate_context!())

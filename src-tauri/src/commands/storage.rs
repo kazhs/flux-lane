@@ -54,3 +54,33 @@ pub fn save_persisted_state(app: AppHandle, json: String) -> Result<(), String> 
         )
     })
 }
+
+/// ユーザーが選んだ任意 path への構成エクスポート（バックアップ用）。`$APPDATA/config.json`
+/// とは無関係で、親 dir が無ければ tmp ファイル作成の時点で自然に Err になる。
+#[tauri::command]
+pub fn export_config_file(path: String, json: String) -> Result<(), String> {
+    let path = PathBuf::from(path);
+    let tmp_path = path.with_extension("json.tmp");
+    {
+        let mut file = fs::File::create(&tmp_path)
+            .map_err(|e| format!("failed to create {}: {e}", tmp_path.display()))?;
+        file.write_all(json.as_bytes())
+            .map_err(|e| format!("failed to write {}: {e}", tmp_path.display()))?;
+        file.sync_all()
+            .map_err(|e| format!("failed to sync {}: {e}", tmp_path.display()))?;
+    }
+    fs::rename(&tmp_path, &path).map_err(|e| {
+        format!(
+            "failed to rename {} -> {}: {e}",
+            tmp_path.display(),
+            path.display()
+        )
+    })
+}
+
+/// ユーザーが選んだ任意 path からの構成インポート（バックアップ用）。
+#[tauri::command]
+pub fn import_config_file(path: String) -> Result<String, String> {
+    let path = PathBuf::from(path);
+    fs::read_to_string(&path).map_err(|e| format!("failed to read {}: {e}", path.display()))
+}
