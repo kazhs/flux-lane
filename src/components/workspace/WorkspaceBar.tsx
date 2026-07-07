@@ -28,7 +28,7 @@ export function WorkspaceBar({
   onRenameCancel,
 }: WorkspaceBarProps) {
   return (
-    <div className="flex h-10 items-center border-b border-border bg-surface pr-2">
+    <div className="chrome-surface flex h-10 items-center border-b border-border pr-2">
       <div className="flex h-full items-center">
         {workspaces.map((workspace) => (
           <WorkspaceTab

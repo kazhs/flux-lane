@@ -74,7 +74,7 @@ function PaneRailButton({
         title={paneRailTooltip(item.title, item.accountLabel, item.shortcut)}
         onClick={() => onSelect(item.paneId)}
         onContextMenu={(event) => onContextMenu(item.paneId, event)}
-        className={`relative flex w-10 flex-col items-center justify-center gap-0.5 rounded px-1 py-1.5 text-text-dim transition-colors hover:bg-surface-hover hover:text-text ${
+        className={`group relative flex w-10 flex-col items-center justify-center gap-0.5 rounded px-1 py-1.5 text-text-dim transition-colors hover:bg-surface-hover hover:text-text ${
           item.focused ? "bg-surface-hover text-text" : ""
         }`}
       >
@@ -93,7 +93,7 @@ function PaneRailButton({
           </span>
         )}
         {item.shortcut && (
-          <span className="w-full truncate text-center text-[9px] leading-none text-text-dim">
+          <span className="w-full truncate text-center text-[9px] leading-none text-text-dim transition-colors group-hover:text-text">
             {item.shortcut}
           </span>
         )}
@@ -116,7 +116,7 @@ export function PaneRail({
 }: PaneRailProps) {
   return (
     <div
-      className="flex h-full shrink-0 flex-col overflow-y-auto border-r border-border bg-surface"
+      className="chrome-surface flex h-full shrink-0 flex-col overflow-y-auto border-r border-border"
       style={{ width: RAIL_WIDTH, scrollbarWidth: "none" }}
     >
       <div className="flex flex-col gap-1 pt-2">

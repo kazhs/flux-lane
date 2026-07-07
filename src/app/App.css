@@ -1,20 +1,47 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #0d0f12;
-  --color-surface: #15181c;
-  --color-surface-hover: #1c2025;
-  --color-border: #262b31;
-  --color-text: #e4e6ea;
-  --color-text-dim: #7a8088;
-  --color-accent: #3b82f6;
-  --color-accent-dim: #3b82f680;
+  /* 始点は純ネイビー、終点は明るめのシアン系ティールへ振る。 */
+  --color-bg: #02091c;
+  /* html/body の背景グラデーション終点（シアン）専用。 */
+  --color-bg-to: #0d4a5e;
+  --color-surface: #081130;
+  /* chrome 面グラデーションの終点（hover 状態とは分離）。 */
+  --color-surface-to: #0b3d50;
+  --color-surface-hover: #14395a;
+  --color-border: #1d3050;
+  /* ペイン境界など強調したいセパレータ専用（シアン）。 */
+  --color-border-strong: #2fa8c8;
+  --color-text: #e6f0fb;
+  --color-text-dim: #7f9bc0;
+  --color-accent: #22d3ee;
+  --color-accent-dim: #22d3ee80;
 }
 
 html,
 body {
-  background-color: var(--color-bg);
+  background: linear-gradient(135deg, var(--color-bg), var(--color-bg-to));
   color: var(--color-text);
+}
+
+/* clickable な要素は必ず pointer カーソルにする。Tailwind v4 の preflight は
+   button の cursor を明示しない（デフォルトの auto のまま）ため、ここで補う。
+   PaneResizeHandle の col-resize・ドラッグハンドルの grab など専用カーソルを持つ
+   要素は button/role="button"/a のいずれでもないため、この規則の対象外。 */
+button:not(:disabled),
+[role="button"],
+a {
+  cursor: pointer;
+}
+
+/* WorkspaceBar・PaneRail・PaneHeader など常設 DOM chrome 面の背景。
+   ネイビー→シアンのグラデーションで統一トーンを出す（主張しすぎない範囲）。 */
+.chrome-surface {
+  background: linear-gradient(
+    135deg,
+    var(--color-surface),
+    var(--color-surface-to)
+  );
 }
 
 * {
@@ -30,8 +57,9 @@ body {
 .pane-strip::-webkit-scrollbar {
   height: 10px;
 }
+/* track は透過して body のグラデーションを透けさせる（下端帯・placeholder も同様）。 */
 .pane-strip::-webkit-scrollbar-track {
-  background: var(--color-bg);
+  background: transparent;
 }
 .pane-strip::-webkit-scrollbar-thumb {
   background: var(--color-border);

@@ -46,7 +46,7 @@ export function PaneHeader({
   return (
     <div
       onPointerDown={onPointerDown}
-      className="relative flex items-center gap-1.5 border-b border-border bg-surface px-2"
+      className="chrome-surface relative flex items-center gap-1.5 border-b border-border px-2"
       style={{ height: PANE_HEADER_HEIGHT }}
     >
       {focused && (

@@ -42,7 +42,7 @@ function resolveIcon(
   if (presetIcon) return presetIcon;
 
   return (
-    <span className="flex h-4 w-4 items-center justify-center rounded border border-border text-[10px] font-medium text-text-dim">
+    <span className="flex h-4 w-4 items-center justify-center rounded border border-border-strong text-[10px] font-medium text-text-dim transition-colors group-hover:text-text">
       {pane.title.charAt(0).toUpperCase() || "?"}
     </span>
   );
