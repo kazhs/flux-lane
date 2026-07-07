@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -34,9 +34,21 @@ export function PaneStripContainer() {
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
   );
 
+  const containerElRef = useRef<HTMLDivElement | null>(null);
   const handleContainerRef = useCallback((el: HTMLDivElement | null) => {
+    containerElRef.current = el;
     layoutController.registerContainer(el);
   }, []);
+
+  // ペイン追加時は右端まで自動スクロールし、新ペインと追加タイルを必ず見せる。
+  const prevPaneCountRef = useRef(paneIds.length);
+  useEffect(() => {
+    const el = containerElRef.current;
+    if (el && paneIds.length > prevPaneCountRef.current) {
+      el.scrollLeft = el.scrollWidth;
+    }
+    prevPaneCountRef.current = paneIds.length;
+  }, [paneIds.length]);
 
   const handleDragStart = useCallback(() => {
     setOverlay("dragging");

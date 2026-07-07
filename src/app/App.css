@@ -22,6 +22,25 @@ body {
   scrollbar-color: var(--color-border) transparent;
 }
 
+/* ペインストリップの横スクロールバーは常時表示にする（overlay scrollbar だと
+   存在に気付けず、WebView に覆われた領域では他にスクロール手段が無いため）。 */
+.pane-strip {
+  scrollbar-width: auto;
+}
+.pane-strip::-webkit-scrollbar {
+  height: 10px;
+}
+.pane-strip::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+.pane-strip::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 5px;
+}
+.pane-strip::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-dim);
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
