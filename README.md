@@ -7,25 +7,36 @@
 - macOS 14 (Sonoma) 以降 / Apple Silicon
 - ペインごとの Cookie/Storage 分離に `WebviewBuilder::data_store_identifier`（WKWebsiteDataStore の UUID 分離）を使用しており、これは macOS 14 未満では利用できない
 
-## セットアップ
+## インストール
+
+[Releases](https://github.com/kazhs/flux-lane/releases) から dmg をダウンロードして `FluxLane.app` を Applications にコピーする。
+
+配布バイナリは**未署名**（Apple Developer Program 非加入のため）。初回起動時に「壊れているため開けません」等の警告でブロックされた場合は、次のどちらかで回避する:
+
+- システム設定 → プライバシーとセキュリティ → 下部の「このまま開く」をクリック
+- またはターミナルで quarantine 属性を外す:
+
+  ```sh
+  xattr -d com.apple.quarantine /Applications/FluxLane.app
+  ```
+
+未署名バイナリの実行が気になる場合は、下記「ソースからビルド」で自分でビルドしたものを使う（ローカルビルドには quarantine が付かないため警告なしで起動する）。
+
+## ソースからビルド
 
 ```sh
 npm install
+npm run tauri build
 ```
+
+`src-tauri/target/release/bundle/` 配下に `.app` / `.dmg` が生成される。Rust toolchain と Node.js が必要。
 
 ## 開発
 
 ```sh
+npm install
 npm run tauri dev
 ```
-
-## ビルド
-
-```sh
-npm run tauri build
-```
-
-`src-tauri/target/release/bundle/` 配下に `.app` / `.dmg` が生成される。
 
 ## バックアップ
 
