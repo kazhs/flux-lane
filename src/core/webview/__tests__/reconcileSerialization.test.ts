@@ -5,6 +5,7 @@ import { createDefaultPersistedState } from "../../../lib/defaults";
 vi.mock("../../ipc/commands", () => ({
   createPaneWebview: vi.fn(),
   destroyPaneWebview: vi.fn(),
+  listPaneWebviewLabels: vi.fn().mockResolvedValue([]),
   setPaneBounds: vi.fn(),
   setPaneVisible: vi.fn(),
   reloadPane: vi.fn(),
@@ -48,6 +49,12 @@ describe("WebviewManager reconcile serialization", () => {
     vi.clearAllMocks();
     // WebviewManager は viewport 補正のため window.innerHeight を参照する（node 環境には無い）。
     vi.stubGlobal("window", { innerHeight: 800 });
+    // appHidden 判定と visibilitychange 購読で document を触るため最低限のスタブを置く。
+    vi.stubGlobal("document", {
+      visibilityState: "visible",
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    });
   });
 
   it("create の解決前に store が再度更新されても、create はペインごとに 1 回で destroy は発生しない", async () => {

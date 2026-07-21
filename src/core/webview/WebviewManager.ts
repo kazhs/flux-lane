@@ -2,13 +2,7 @@ import { useAppStore } from "../../stores/appStore";
 import { useUiStore } from "../../stores/uiStore";
 import { PRESET_SERVICES } from "../services";
 import { matchServiceByUrl } from "../../lib/matchServiceByUrl";
-import type {
-  AutoScrollSpeed,
-  OverlayMode,
-  PaneId,
-  Rect,
-  WorkspaceId,
-} from "../../types";
+import type { OverlayMode, PaneId, Rect, WorkspaceId } from "../../types";
 import {
   createPaneWebview,
   destroyPaneWebview,
@@ -74,6 +68,10 @@ class WebviewManager {
   /** LRU 2 枚常駐の background 側（直前 workspace 由来で、アクティブ workspace には属さない）。
    * WebView は生かすが必ず hidden にする（`applyVisibility` で他の非表示条件と AND）。 */
   private backgroundPaneIds = new Set<PaneId>();
+  /** app 全体が画面に出ていない状態（別 Space・minimize・完全 occlusion 等）。
+   * `document.visibilityState === 'hidden'` に同期し、autoScroll 実行可否の判定に使う。
+   * この状態でもストアの `pane.autoScroll` は保持する（復帰時に再開したいため）。 */
+  private appHidden = false;
   /** アクティブ workspace が切り替わる直前の workspaceId。React 外・永続化しない
    * （`doReconcile` が `computeDesiredPanes` に渡す LRU の第 2 位）。 */
   private previousWorkspaceId: WorkspaceId | null = null;
@@ -86,6 +84,17 @@ class WebviewManager {
   private started = false;
   private reconcileRunning = false;
   private reconcileQueued = false;
+
+  private readonly onVisibilityChange = (): void => {
+    const hidden = document.visibilityState === "hidden";
+    if (hidden === this.appHidden) return;
+    this.appHidden = hidden;
+    // app 復帰・退避のどちらでも autoScroll ON の全 pane を再判定させる
+    // （applyAutoScroll は appHidden を反映して STOP or START を選び直す）。
+    for (const paneId of this.createdSessionIds.keys()) {
+      void this.applyAutoScroll(paneId);
+    }
+  };
 
   async init(): Promise<void> {
     if (this.started) return;
@@ -133,6 +142,11 @@ class WebviewManager {
     this.unlistenAccount = await onPaneAccount((payload) => {
       this.handlePaneAccount(payload);
     });
+
+    // app 全体の可視性は document.visibilityState を SoT に置く（minimize / 別 Space /
+    // 他アプリ全画面被り のいずれでも hidden になる）。
+    this.appHidden = document.visibilityState === "hidden";
+    document.addEventListener("visibilitychange", this.onVisibilityChange);
   }
 
   stop(): void {
@@ -146,6 +160,7 @@ class WebviewManager {
     this.unlistenWheel = null;
     this.unlistenAccount?.();
     this.unlistenAccount = null;
+    document.removeEventListener("visibilitychange", this.onVisibilityChange);
     this.started = false;
   }
 
@@ -196,19 +211,34 @@ class WebviewManager {
     await evalInPane(labelForPane(paneId), muted ? MUTE_SCRIPT : UNMUTE_SCRIPT);
   }
 
-  /** オートスクロール開始/停止の JS 注入のみを行う。store 更新は呼び出し側の責務。
-   * ON→ON で speed だけを変えたいケースにも同じ経路を使う: 常に STOP → START(speed) で
-   * 再注入することで速度切替を即反映する（ユーザーの pause 状態はリセットされる）。 */
-  async setAutoScroll(
-    paneId: PaneId,
-    on: boolean,
-    speed: AutoScrollSpeed,
-  ): Promise<void> {
+  /**
+   * 現在の store + layoutHidden + appHidden を突き合わせて、指定 pane の
+   * autoScroll 実行可否を再評価し JS を注入する。呼び出し側は store の
+   * `pane.autoScroll` / `pane.autoScrollSpeed` を先に更新してから呼ぶ
+   * （ここは注入のみで store は触らない）。
+   */
+  async setAutoScroll(paneId: PaneId): Promise<void> {
+    await this.applyAutoScroll(paneId);
+  }
+
+  /**
+   * 判定式は `pane.autoScroll && !layoutHidden && !appHidden`。
+   * true なら STOP → START(speed) で（速度変更の即反映も兼ねて）再注入、
+   * false なら STOP のみ注入する。store の autoScroll フラグは触らない。
+   */
+  private async applyAutoScroll(paneId: PaneId): Promise<void> {
     if (!this.createdSessionIds.has(paneId)) return;
+    const pane = useAppStore.getState().panes[paneId];
+    if (!pane) return;
     const label = labelForPane(paneId);
+    const desired =
+      pane.autoScroll && !this.layoutHidden.has(paneId) && !this.appHidden;
+    // STOP を先に打つのは 2 つの理由: (1) speed 変更を即反映するため一度落とす、
+    // (2) desired=false でも既存 script を確実に止める。STOP 側は
+    // `__fluxLaneAutoScroll` 未定義時は no-op なので再送は無害。
     await evalInPane(label, AUTO_SCROLL_STOP_SCRIPT);
-    if (on) {
-      await evalInPane(label, autoScrollStartScript(speed));
+    if (desired) {
+      await evalInPane(label, autoScrollStartScript(pane.autoScrollSpeed));
     }
   }
 
@@ -226,7 +256,9 @@ class WebviewManager {
   }
 
   /** LayoutController からの hidden 変化通知を受け、layoutHidden 集合を更新して
-   * visibility を再計算する。変化した pane だけを runtime lifecycle にも反映する。 */
+   * visibility を再計算する。変化した pane だけを runtime lifecycle にも反映し、
+   * autoScroll 実行可否も再評価する（幅 0 に潰れた pane では即 STOP、復帰時に
+   * `pane.autoScroll` が true のままなら START を再注入）。 */
   setLayoutHidden(changes: ReadonlyMap<PaneId, boolean>): void {
     const overlay = useUiStore.getState().overlay;
     for (const [paneId, hidden] of changes) {
@@ -239,6 +271,7 @@ class WebviewManager {
       useUiStore
         .getState()
         .setPaneLifecycle(paneId, hidden ? "hidden" : "active");
+      void this.applyAutoScroll(paneId);
     }
   }
 
@@ -487,13 +520,11 @@ class WebviewManager {
         // ナビゲーションで init script が消えるため、finished 時に再 eval する。
         void evalInPane(labelForPane(paneId), MUTE_SCRIPT);
       }
-      if (pane?.autoScroll) {
-        // ナビゲーションで init script が消えるため、finished 時に再 eval する
-        // （MUTE_SCRIPT と同じ理由）。speed も pane state の値をそのまま反映する。
-        void evalInPane(
-          labelForPane(paneId),
-          autoScrollStartScript(pane.autoScrollSpeed),
-        );
+      if (pane) {
+        // ナビゲーションで init script が消えるため、finished 時に再判定する
+        // （MUTE_SCRIPT と同じ理由）。layoutHidden / appHidden の考慮は
+        // applyAutoScroll に集約する。
+        void this.applyAutoScroll(paneId);
       }
 
       // ナビゲーションで init script が再実行され focused=false に初期化されるため、

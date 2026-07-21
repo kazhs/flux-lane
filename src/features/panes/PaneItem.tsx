@@ -95,18 +95,15 @@ export function PaneItem({ paneId }: PaneItemProps) {
   };
 
   const handleToggleAutoScroll = () => {
-    const autoScroll = !pane.autoScroll;
-    updatePane(paneId, { autoScroll });
-    void webviewManager.setAutoScroll(paneId, autoScroll, pane.autoScrollSpeed);
+    updatePane(paneId, { autoScroll: !pane.autoScroll });
+    void webviewManager.setAutoScroll(paneId);
   };
 
   const handleCycleAutoScrollSpeed = () => {
     const nextSpeed = ((pane.autoScrollSpeed % 5) + 1) as AutoScrollSpeed;
     updatePane(paneId, { autoScrollSpeed: nextSpeed });
-    // 再生中のみ即反映。停止中は次回再生時に新 speed で立ち上がる。
-    if (pane.autoScroll) {
-      void webviewManager.setAutoScroll(paneId, true, nextSpeed);
-    }
+    // 再生中のみ即反映（applyAutoScroll が pane.autoScroll を見て判定する）。
+    void webviewManager.setAutoScroll(paneId);
   };
 
   const handleBack = () => {
