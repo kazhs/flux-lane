@@ -104,7 +104,11 @@ export async function bootstrap(): Promise<void> {
       if (!pane) return;
       const autoScroll = !pane.autoScroll;
       useAppStore.getState().updatePane(paneId, { autoScroll });
-      void webviewManager.setAutoScroll(paneId, autoScroll);
+      void webviewManager.setAutoScroll(
+        paneId,
+        autoScroll,
+        pane.autoScrollSpeed,
+      );
       return;
     }
     // action === "close"

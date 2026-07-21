@@ -21,6 +21,11 @@ export function createPaneWebview(
   return invoke("create_pane_webview", { ...params });
 }
 
+/** dev HMR で JS だけ再起動したときに、Rust 側に残った pane webview の label を列挙する。 */
+export function listPaneWebviewLabels(): Promise<string[]> {
+  return invoke("list_pane_webview_labels");
+}
+
 export function destroyPaneWebview(
   label: string,
   purgeData: boolean,

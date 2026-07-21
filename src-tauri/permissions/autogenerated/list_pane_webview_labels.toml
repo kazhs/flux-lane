@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-list-pane-webview-labels"
+description = "Enables the list_pane_webview_labels command without any pre-configured scope."
+commands.allow = ["list_pane_webview_labels"]
+
+[[permission]]
+identifier = "deny-list-pane-webview-labels"
+description = "Denies the list_pane_webview_labels command without any pre-configured scope."
+commands.deny = ["list_pane_webview_labels"]

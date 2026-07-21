@@ -2,12 +2,19 @@ import { useAppStore } from "../../stores/appStore";
 import { useUiStore } from "../../stores/uiStore";
 import { PRESET_SERVICES } from "../services";
 import { matchServiceByUrl } from "../../lib/matchServiceByUrl";
-import type { OverlayMode, PaneId, Rect, WorkspaceId } from "../../types";
+import type {
+  AutoScrollSpeed,
+  OverlayMode,
+  PaneId,
+  Rect,
+  WorkspaceId,
+} from "../../types";
 import {
   createPaneWebview,
   destroyPaneWebview,
   evalInPane,
   focusWebview,
+  listPaneWebviewLabels,
   reloadPane,
   setPaneBounds,
   setPaneVisible,
@@ -29,10 +36,10 @@ import { layoutController } from "./LayoutController";
 import { computeWebviewOps } from "./reconcile";
 import { computeDesiredPanes } from "./workspaceResidency";
 import {
-  AUTO_SCROLL_START_SCRIPT,
   AUTO_SCROLL_STOP_SCRIPT,
   MUTE_SCRIPT,
   UNMUTE_SCRIPT,
+  autoScrollStartScript,
 } from "./scripts";
 
 type Unsubscribe = () => void;
@@ -83,6 +90,13 @@ class WebviewManager {
   async init(): Promise<void> {
     if (this.started) return;
     this.started = true;
+
+    // dev HMR の JS 側だけリロードでは、Rust 側に旧セッションの pane webview が残る。
+    // 素直に reconcile すると全て「未生成」判定で create → 二重発行で "already exists"、
+    // 全 pane が failedPaneIds に落ちて layout が壊れる（bounds も送られなくなる）。
+    // 起動直後に一度だけ Rust の実在 label を取り込み、store と付き合わせて createdSessionIds
+    // を復元しておく（store から消えたペインは purge_data=false で掃除）。
+    await this.reclaimExistingWebviews();
 
     await this.reconcile();
 
@@ -182,13 +196,20 @@ class WebviewManager {
     await evalInPane(labelForPane(paneId), muted ? MUTE_SCRIPT : UNMUTE_SCRIPT);
   }
 
-  /** オートスクロール開始/停止の JS 注入のみを行う。store 更新は呼び出し側の責務。 */
-  async setAutoScroll(paneId: PaneId, on: boolean): Promise<void> {
+  /** オートスクロール開始/停止の JS 注入のみを行う。store 更新は呼び出し側の責務。
+   * ON→ON で speed だけを変えたいケースにも同じ経路を使う: 常に STOP → START(speed) で
+   * 再注入することで速度切替を即反映する（ユーザーの pause 状態はリセットされる）。 */
+  async setAutoScroll(
+    paneId: PaneId,
+    on: boolean,
+    speed: AutoScrollSpeed,
+  ): Promise<void> {
     if (!this.createdSessionIds.has(paneId)) return;
-    await evalInPane(
-      labelForPane(paneId),
-      on ? AUTO_SCROLL_START_SCRIPT : AUTO_SCROLL_STOP_SCRIPT,
-    );
+    const label = labelForPane(paneId);
+    await evalInPane(label, AUTO_SCROLL_STOP_SCRIPT);
+    if (on) {
+      await evalInPane(label, autoScrollStartScript(speed));
+    }
   }
 
   /** ページ内履歴を 1 つ戻る。有効可否の取得手段が無いため常時発行する
@@ -252,6 +273,44 @@ class WebviewManager {
       this.applyVisibility(paneId, overlay);
       if (next.has(paneId) && useUiStore.getState().focusedPaneId === paneId) {
         useUiStore.getState().setFocusedPane(null);
+      }
+    }
+  }
+
+  /**
+   * dev HMR 経路のみ実質的に効く復元ステップ。Rust に生きている pane webview label を列挙し、
+   * store の pane と一致するものは createdSessionIds に取り込む（sessionId は store 値を採用:
+   * 同 label は同 paneId・同 sessionId を維持する運用のため一致するはず）。store から
+   * 消えたペインは孤児として destroy する。purge_data=false でセッションデータを残す。
+   *
+   * 本番起動時は Rust 側にも子 webview はまだ無いので noop。
+   */
+  private async reclaimExistingWebviews(): Promise<void> {
+    let labels: string[];
+    try {
+      labels = await listPaneWebviewLabels();
+    } catch (error) {
+      console.error("[WebviewManager] list_pane_webview_labels failed:", error);
+      return;
+    }
+    if (labels.length === 0) return;
+
+    const state = useAppStore.getState();
+    for (const label of labels) {
+      const paneId = paneIdFromLabel(label);
+      if (!paneId) continue;
+      const pane = state.panes[paneId];
+      if (pane) {
+        this.createdSessionIds.set(paneId, pane.sessionId);
+      } else {
+        try {
+          await destroyPaneWebview(label, false);
+        } catch (error) {
+          console.error(
+            `[WebviewManager] failed to destroy orphaned pane ${label}:`,
+            error,
+          );
+        }
       }
     }
   }
@@ -430,8 +489,11 @@ class WebviewManager {
       }
       if (pane?.autoScroll) {
         // ナビゲーションで init script が消えるため、finished 時に再 eval する
-        // （MUTE_SCRIPT と同じ理由）。
-        void evalInPane(labelForPane(paneId), AUTO_SCROLL_START_SCRIPT);
+        // （MUTE_SCRIPT と同じ理由）。speed も pane state の値をそのまま反映する。
+        void evalInPane(
+          labelForPane(paneId),
+          autoScrollStartScript(pane.autoScrollSpeed),
+        );
       }
 
       // ナビゲーションで init script が再実行され focused=false に初期化されるため、

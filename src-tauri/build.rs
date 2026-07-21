@@ -10,6 +10,7 @@ fn main() {
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(
         tauri_build::AppManifest::new().commands(&[
             "create_pane_webview",
+            "list_pane_webview_labels",
             "destroy_pane_webview",
             "set_pane_bounds",
             "set_pane_visible",

@@ -127,6 +127,17 @@ pub fn create_pane_webview(
     Ok(())
 }
 
+/// 現在生きている pane webview の label を列挙する。dev HMR で JS ランタイムだけが
+/// 再起動したとき、Rust 側に残った子 webview を TS 側が把握するために使う（重複 create
+/// で "already exists" が出て `failedPaneIds` に落ちるのを防ぐ、`WebviewManager.init` 参照）。
+#[tauri::command]
+pub fn list_pane_webview_labels(app: AppHandle) -> Vec<String> {
+    app.webviews()
+        .into_keys()
+        .filter(|label| label.starts_with("pane-"))
+        .collect()
+}
+
 #[tauri::command]
 pub fn destroy_pane_webview(app: AppHandle, label: String, purge_data: bool) -> Result<(), String> {
     let webview = get_pane_webview(&app, &label)?;

@@ -9,6 +9,7 @@
     "dialog:allow-save",
     "dialog:allow-open",
     "allow-create-pane-webview",
+    "allow-list-pane-webview-labels",
     "allow-destroy-pane-webview",
     "allow-set-pane-bounds",
     "allow-set-pane-visible",

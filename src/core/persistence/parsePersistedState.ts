@@ -1,5 +1,11 @@
 import { CURRENT_SCHEMA_VERSION } from "../../types";
-import type { AppSettings, Pane, PersistedState, Workspace } from "../../types";
+import type {
+  AppSettings,
+  AutoScrollSpeed,
+  Pane,
+  PersistedState,
+  Workspace,
+} from "../../types";
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -37,8 +43,15 @@ function isWorkspace(value: unknown): value is Workspace {
   );
 }
 
-/** `autoScroll` は旧バージョンの永続化データに存在しないため欠落を許容し、
- * {@link sanitizeMissingAutoScroll} で false を補完する。値がある場合は boolean 以外を reject。 */
+function isAutoScrollSpeed(value: unknown): value is AutoScrollSpeed {
+  return (
+    value === 1 || value === 2 || value === 3 || value === 4 || value === 5
+  );
+}
+
+/** `autoScroll` / `autoScrollSpeed` は追加時期が異なるため旧永続化データでの欠落を許容し、
+ * {@link sanitizeMissingAutoScrollFields} で既定値（false / 1）を補完する。
+ * 値がある場合の型不一致は reject する。 */
 function isPane(value: unknown): value is Pane {
   return (
     isPlainObject(value) &&
@@ -48,7 +61,9 @@ function isPane(value: unknown): value is Pane {
     isString(value.sessionId) &&
     isFiniteNumber(value.width) &&
     isBoolean(value.muted) &&
-    (value.autoScroll === undefined || isBoolean(value.autoScroll))
+    (value.autoScroll === undefined || isBoolean(value.autoScroll)) &&
+    (value.autoScrollSpeed === undefined ||
+      isAutoScrollSpeed(value.autoScrollSpeed))
   );
 }
 
@@ -72,19 +87,27 @@ function sanitizeDanglingPaneIds(state: PersistedState): PersistedState {
 }
 
 /**
- * `autoScroll` フィールドが無い pane（`autoScroll` 追加前に保存された旧データ）に
- * false を補完した複製を返す。{@link isPane} で型は検証済みなので、ここでは欠落のみを扱う。
+ * `autoScroll` / `autoScrollSpeed` が欠落した pane（それぞれの機能追加前に保存された旧データ）
+ * に既定値を補完した複製を返す。{@link isPane} で型は検証済みなので、ここでは欠落のみを扱う。
  */
-function sanitizeMissingAutoScroll(state: PersistedState): PersistedState {
+function sanitizeMissingAutoScrollFields(
+  state: PersistedState,
+): PersistedState {
   const panes: Record<string, Pane> = {};
   let changed = false;
   for (const [id, pane] of Object.entries(state.panes)) {
-    if (typeof pane.autoScroll === "boolean") {
+    const missingAutoScroll = typeof pane.autoScroll !== "boolean";
+    const missingSpeed = !isAutoScrollSpeed(pane.autoScrollSpeed);
+    if (!missingAutoScroll && !missingSpeed) {
       panes[id] = pane;
-    } else {
-      changed = true;
-      panes[id] = { ...pane, autoScroll: false };
+      continue;
     }
+    changed = true;
+    panes[id] = {
+      ...pane,
+      autoScroll: missingAutoScroll ? false : pane.autoScroll,
+      autoScrollSpeed: missingSpeed ? 1 : pane.autoScrollSpeed,
+    };
   }
   return changed ? { ...state, panes } : state;
 }
@@ -126,7 +149,7 @@ export function parsePersistedState(json: string): PersistedState | null {
   switch (raw.schemaVersion) {
     case CURRENT_SCHEMA_VERSION:
       return isPersistedStateV1(raw)
-        ? sanitizeMissingAutoScroll(sanitizeDanglingPaneIds(raw))
+        ? sanitizeMissingAutoScrollFields(sanitizeDanglingPaneIds(raw))
         : null;
     default:
       return null;

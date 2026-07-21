@@ -1,3 +1,4 @@
+import type { AutoScrollSpeed } from "../../types";
 import { IconButton } from "../ui/IconButton";
 import {
   PauseIcon,
@@ -9,10 +10,12 @@ import {
 
 export type PaneSideMenuProps = {
   autoScroll: boolean;
+  autoScrollSpeed: AutoScrollSpeed;
   muted: boolean;
   isLoading: boolean;
   onReload: () => void;
   onToggleAutoScroll: () => void;
+  onCycleAutoScrollSpeed: () => void;
   onToggleMute: () => void;
 };
 
@@ -24,10 +27,12 @@ export type PaneSideMenuProps = {
  */
 export function PaneSideMenu({
   autoScroll,
+  autoScrollSpeed,
   muted,
   isLoading,
   onReload,
   onToggleAutoScroll,
+  onCycleAutoScrollSpeed,
   onToggleMute,
 }: PaneSideMenuProps) {
   return (
@@ -48,6 +53,15 @@ export function PaneSideMenu({
         icon={autoScroll ? <PauseIcon /> : <PlayIcon />}
         active={autoScroll}
         onClick={onToggleAutoScroll}
+        className={autoScroll ? "!text-accent" : ""}
+      />
+      <IconButton
+        aria-label={`Auto scroll speed: x${autoScrollSpeed} (click to cycle)`}
+        icon={
+          <span className="text-[10px] font-semibold">{`x${autoScrollSpeed}`}</span>
+        }
+        active={autoScroll && autoScrollSpeed > 1}
+        onClick={onCycleAutoScrollSpeed}
       />
     </div>
   );

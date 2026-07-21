@@ -92,7 +92,7 @@ describe("appStore", () => {
     expect(state.activeWorkspaceId).toBe(wsA);
   });
 
-  it("addPane initializes autoScroll to false", () => {
+  it("addPane initializes autoScroll to false and autoScrollSpeed to 1", () => {
     hydrateWithDefault();
     const workspaceId = requireActiveWorkspaceId();
 
@@ -103,9 +103,10 @@ describe("appStore", () => {
     });
 
     expect(useAppStore.getState().panes[paneId]?.autoScroll).toBe(false);
+    expect(useAppStore.getState().panes[paneId]?.autoScrollSpeed).toBe(1);
   });
 
-  it("updatePane patches autoScroll", () => {
+  it("updatePane patches autoScroll and autoScrollSpeed", () => {
     hydrateWithDefault();
     const workspaceId = requireActiveWorkspaceId();
     const paneId = useAppStore.getState().addPane(workspaceId, {
@@ -115,8 +116,10 @@ describe("appStore", () => {
     });
 
     useAppStore.getState().updatePane(paneId, { autoScroll: true });
-
     expect(useAppStore.getState().panes[paneId]?.autoScroll).toBe(true);
+
+    useAppStore.getState().updatePane(paneId, { autoScrollSpeed: 3 });
+    expect(useAppStore.getState().panes[paneId]?.autoScrollSpeed).toBe(3);
   });
 
   it("clamps pane width to MIN_PANE_WIDTH on addPane and setPaneWidth", () => {

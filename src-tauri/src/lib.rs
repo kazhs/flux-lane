@@ -64,6 +64,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::webview::create_pane_webview,
+            commands::webview::list_pane_webview_labels,
             commands::webview::destroy_pane_webview,
             commands::webview::set_pane_bounds,
             commands::webview::set_pane_visible,

@@ -16,6 +16,7 @@ function makePane(id: string): Pane {
     width: MIN_PANE_WIDTH,
     muted: false,
     autoScroll: false,
+    autoScrollSpeed: 1,
   };
 }
 

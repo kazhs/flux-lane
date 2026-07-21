@@ -43,7 +43,7 @@ describe("parsePersistedState", () => {
     expect(parsed?.workspaces[workspaceId]?.paneIds).toEqual([]);
   });
 
-  it("repairs panes missing autoScroll (旧バージョンのデータ) by defaulting to false", () => {
+  it("repairs panes missing autoScroll/autoScrollSpeed (旧バージョンのデータ) by defaulting to false/1", () => {
     const persisted = createDefaultPersistedState();
     const workspaceId = persisted.workspaceOrder[0];
     if (!workspaceId) throw new Error("expected a default workspace");
@@ -65,12 +65,43 @@ describe("parsePersistedState", () => {
           sessionId: "s",
           width: 400,
           muted: false,
-          // autoScroll フィールドなし（旧バージョン想定）
+          // autoScroll / autoScrollSpeed 共に欠落（旧バージョン想定）
         },
       },
     };
     const parsed = parsePersistedState(JSON.stringify(raw));
     expect(parsed?.panes[paneId]?.autoScroll).toBe(false);
+    expect(parsed?.panes[paneId]?.autoScrollSpeed).toBe(1);
+  });
+
+  it("returns null when autoScrollSpeed is outside 1..5", () => {
+    const persisted = createDefaultPersistedState();
+    const workspaceId = persisted.workspaceOrder[0];
+    if (!workspaceId) throw new Error("expected a default workspace");
+    const workspace = persisted.workspaces[workspaceId];
+    if (!workspace) throw new Error("expected a default workspace entry");
+
+    const paneId = "pane-1";
+    const raw = {
+      ...persisted,
+      workspaces: {
+        ...persisted.workspaces,
+        [workspaceId]: { ...workspace, paneIds: [paneId] },
+      },
+      panes: {
+        [paneId]: {
+          id: paneId,
+          title: "T",
+          url: "https://x.example",
+          sessionId: "s",
+          width: 400,
+          muted: false,
+          autoScroll: false,
+          autoScrollSpeed: 6, // 範囲外
+        },
+      },
+    };
+    expect(parsePersistedState(JSON.stringify(raw))).toBeNull();
   });
 
   it("returns null when autoScroll has the wrong type", () => {
