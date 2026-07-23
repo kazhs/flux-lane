@@ -1,4 +1,4 @@
-import type { HTMLAttributes, PointerEvent as ReactPointerEvent } from "react";
+import type { HTMLAttributes } from "react";
 import { PANE_HEADER_HEIGHT } from "../../lib/constants";
 import { IconButton } from "../ui/IconButton";
 import {
@@ -15,7 +15,6 @@ export type PaneHeaderProps = {
   accountLabel?: string | null;
   /** ペインフォーカスモデルでこのペインがフォーカス中か。上端に accent ラインを表示する。 */
   focused?: boolean;
-  onPointerDown?: (event: ReactPointerEvent<HTMLDivElement>) => void;
   dragHandleProps?: HTMLAttributes<HTMLElement>;
   onBack?: () => void;
   onForward?: () => void;
@@ -39,7 +38,6 @@ export function PaneHeader({
   url,
   accountLabel,
   focused,
-  onPointerDown,
   dragHandleProps,
   onBack,
   onForward,
@@ -47,7 +45,6 @@ export function PaneHeader({
 }: PaneHeaderProps) {
   return (
     <div
-      onPointerDown={onPointerDown}
       className="chrome-surface relative flex items-center gap-1.5 border-b border-border px-2"
       style={{ height: PANE_HEADER_HEIGHT }}
     >

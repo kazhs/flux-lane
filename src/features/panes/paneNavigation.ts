@@ -5,13 +5,38 @@ import type { PaneId } from "../../types";
 
 /** レール起点のジャンプ・フォーカス変化に伴う自動スクロール: strip 側の scroll イベントを
  * LayoutController が拾って WebView bounds を追随させる既存機構に乗せる
- * （新規の同期経路は作らない）。`PaneStripContainer` の focusedPaneId 監視からも使う。 */
+ * （新規の同期経路は作らない）。`PaneStripContainer` の focusedPaneId 監視からも使う。
+ *
+ * scrollIntoView({inline:"nearest"}) は「もう edge に少しでも見えている」ケースで
+ * スクロールを打たない実装差があり得るため、strip 側の scrollLeft を直接動かす方式に
+ * 統一する（ペインが container 右にはみ出していればちょうど収まるところまで、左に
+ * はみ出していれば左端が揃うところまで）。 */
 export function scrollPaneIntoView(paneId: PaneId): void {
-  const el = document.querySelector(`[data-pane-id="${paneId}"]`);
-  el?.scrollIntoView({
+  const el = document.querySelector<HTMLElement>(`[data-pane-id="${paneId}"]`);
+  if (!el) return;
+  const container = el.closest<HTMLElement>(".pane-strip");
+  if (!container) {
+    el.scrollIntoView({
+      behavior: "smooth",
+      inline: "nearest",
+      block: "nearest",
+    });
+    return;
+  }
+  const containerRect = container.getBoundingClientRect();
+  const elRect = el.getBoundingClientRect();
+  const overflowLeft = containerRect.left - elRect.left;
+  const overflowRight = elRect.right - containerRect.right;
+  let delta = 0;
+  if (overflowLeft > 0) {
+    delta = -overflowLeft;
+  } else if (overflowRight > 0) {
+    delta = overflowRight;
+  }
+  if (delta === 0) return;
+  container.scrollTo({
+    left: container.scrollLeft + delta,
     behavior: "smooth",
-    inline: "nearest",
-    block: "nearest",
   });
 }
 

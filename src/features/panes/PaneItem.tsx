@@ -52,9 +52,11 @@ export function PaneItem({ paneId }: PaneItemProps) {
   );
   const handleEndResize = useCallback(() => setOverlay("none"), [setOverlay]);
 
-  // ヘッダー上の pointerdown は root（App）の「他所クリックでフォーカス解除」より先に
-  // 自ペインへのフォーカスを確定させる。stopPropagation で root ハンドラの発火を防ぐ。
-  const handleHeaderPointerDown = useCallback(
+  // ペイン内のあらゆる chrome クリック（ヘッダー・サイドメニュー・リサイズハンドル）に
+  // 対して、root（App）の「他所クリックでフォーカス解除」より先に自ペインへのフォーカスを
+  // 確定させる。stopPropagation で root ハンドラの発火を防ぐ。個別コンポーネント側で
+  // 逐一 stopPropagation を張ると増設のたびに漏れるので、外枠 1 箇所に集約する。
+  const handlePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
       event.stopPropagation();
       setFocusedPane(paneId);
@@ -118,6 +120,7 @@ export function PaneItem({ paneId }: PaneItemProps) {
     <div
       ref={setNodeRef}
       data-pane-id={paneId}
+      onPointerDown={handlePointerDown}
       className="flex h-full shrink-0"
       style={{
         transform: CSS.Transform.toString(transform),
@@ -143,7 +146,6 @@ export function PaneItem({ paneId }: PaneItemProps) {
             url={runtime?.currentUrl ?? pane.url}
             accountLabel={runtime?.accountLabel ?? null}
             focused={focused}
-            onPointerDown={handleHeaderPointerDown}
             dragHandleProps={{ ...attributes, ...listeners }}
             onBack={handleBack}
             onForward={handleForward}

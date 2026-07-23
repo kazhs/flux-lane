@@ -21,9 +21,40 @@ pub const PANE_FOCUS_INIT_SCRIPT: &str = r#"(function () {
   // focused フラグだけを見る方式は pointerdown〜click の間の状態変化で必ず破れる。
   var swallowGesture = false;
 
+  // 未フォーカス pane 上のカーソルは常に default にする。pointerdown/click は捕まえて
+  // いてもホバー時のカーソルはページ CSS（`a { cursor: pointer }` 等）が効いてしまい、
+  // 「クリックできる」誤解を与えるため。style タグを 1 枚差し込み、focused の on/off で
+  // documentElement のクラスを切り替えて有効化・無効化する（!important 付きで大抵の
+  // ページ CSS を上書きする）。
+  var cursorStyle = null;
+  function ensureCursorStyle() {
+    if (cursorStyle) return;
+    if (!document.documentElement) return;
+    var s = document.createElement("style");
+    s.textContent =
+      "html.__fluxLaneUnfocused, html.__fluxLaneUnfocused *, " +
+      "html.__fluxLaneUnfocused *::before, html.__fluxLaneUnfocused *::after " +
+      "{ cursor: default !important; }";
+    document.documentElement.appendChild(s);
+    cursorStyle = s;
+  }
+  function applyCursorClass() {
+    if (!document.documentElement) return;
+    document.documentElement.classList.toggle("__fluxLaneUnfocused", !focused);
+  }
+  ensureCursorStyle();
+  applyCursorClass();
+  // documentElement が空の状態で init script が走った場合に備えて、DOM 準備後にも再適用する。
+  document.addEventListener("DOMContentLoaded", function () {
+    ensureCursorStyle();
+    applyCursorClass();
+  });
+
   window.__fluxLaneSetFocused = function (value) {
     focused = Boolean(value);
     focusRequested = false;
+    ensureCursorStyle();
+    applyCursorClass();
   };
 
   function block(event) {
